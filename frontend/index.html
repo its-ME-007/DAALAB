@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithm Code Execution</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Algorithm Code Execution</h1>
+            <div class="user-info">
+                <span id="username"></span>
+                <button id="logoutButton">Logout</button>
+            </div>
+        </header>
+
+        <nav>
+            <a href="index.html" class="nav-link active">Code Execution</a>
+            <a href="visualizer.html" class="nav-link">Visualizer</a>
+        </nav>
+        
+        <div class="code-execution-container">
+            <div class="input-section">
+                <div class="form-group">
+                    <label for="algorithmName">Algorithm Name:</label>
+                    <input type="text" id="algorithmName" placeholder="Enter algorithm name">
+                </div>
+
+                <div class="form-group">
+                    <label for="languageSelect">Language:</label>
+                    <select id="languageSelect">
+                        <option value="c">C</option>
+                        <option value="cpp">C++</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="code-section">
+                <div class="code-editor-container">
+                    <label for="codeEditor">Code:</label>
+                    <textarea id="codeEditor" placeholder="Enter your C/C++ code here..."></textarea>
+                </div>
+                
+                <div class="output-container">
+                    <label for="outputDisplay">Output:</label>
+                    <div id="outputDisplay" class="output-display"></div>
+                    <div id="currentRuntime" class="runtime-display"></div>
+                </div>
+            </div>
+            
+            <div class="button-container">
+                <button id="runButton" class="primary-button">Run Code</button>
+                <button id="visualizeButton" class="secondary-button">Visualize Runtimes</button>
+            </div>
+        </div>
+    </div>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 

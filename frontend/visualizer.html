@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithm Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Algorithm Performance Analysis</h1>
+            <div class="user-info">
+                <span id="username"></span>
+                <button id="logoutButton">Logout</button>
+            </div>
+        </header>
+
+        <nav>
+            <a href="index.html" class="nav-link">Code Execution</a>
+            <a href="visualizer.html" class="nav-link active">Visualizer</a>
+        </nav>
+        
+        <div class="visualizer-container">
+            <div class="algorithm-selector">
+                <select id="algorithmSelect">
+                    <option value="">Select Algorithm</option>
+                </select>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="runtimeChart"></canvas>
+            </div>
+            
+            <div class="execution-history">
+                <h2>Execution History</h2>
+                <div id="executionHistory" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="auth.js"></script>
+    <script src="visualizer.js"></script>
+</body>
+</html> 
