@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock  # Enable Docker-in-Docker
+      - /tmp:/tmp  # Share temp directory
+    privileged: true  # Required for Docker-in-Docker
+    restart: unless-stopped
+    depends_on:
+      - gcc-service
+    networks:
+      - app-network
+
+  gcc-service:
+    image: gcc:latest
+    command: tail -f /dev/null  # Keep container running
+    volumes:
+      - /tmp:/tmp
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  frontend:
+    build: 
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  temp_vol:
