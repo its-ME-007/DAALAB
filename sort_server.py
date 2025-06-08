@@ -5,12 +5,13 @@ import time
 from heap_sort import heap_sort
 from merge_sort import merge_sort
 from quick_sort import quick_sort
+from insertion_sort import insertion_sort
 
 app = FastAPI(title="Sorting Algorithms API")
 
 class SortRequest(BaseModel):
     array: List[int]
-    algorithm: Literal["heap", "merge", "quick"]
+    algorithm: Literal["heap", "merge", "quick", "insertion"]
 
 class SortResponse(BaseModel):
     original_array: List[int]
@@ -32,9 +33,12 @@ async def sort_array(request: SortRequest):
         elif request.algorithm == "merge":
             sort_func = merge_sort
             algo_name = "Merge Sort"
-        else:
+        elif request.algorithm == "quick":
             sort_func = quick_sort
             algo_name = "Quick Sort"
+        else:
+            sort_func = insertion_sort
+            algo_name = "Insertion Sort"
         
         # Measure execution time
         start_time = time.perf_counter()

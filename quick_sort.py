@@ -1,4 +1,3 @@
-
 def partition(arr, low, high):
     """
     Partition the array and return the pivot index

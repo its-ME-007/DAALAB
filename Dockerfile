@@ -8,6 +8,7 @@ COPY requirements.txt .
 COPY heap_sort.py .
 COPY merge_sort.py .
 COPY quick_sort.py .
+COPY insertion_sort.py .
 COPY sort_server.py .
 
 # Install dependencies

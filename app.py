@@ -22,12 +22,19 @@ def get_algorithm_info(algorithm):
             "space_complexity": "O(n)",
             "description": "A divide-and-conquer algorithm that recursively breaks down the problem into smaller subproblems."
         }
-    else:
+    elif algorithm == "quick":
         return {
             "name": "Quick Sort",
             "time_complexity": "O(n log n) average, O(n²) worst",
             "space_complexity": "O(log n)",
             "description": "A divide-and-conquer algorithm that picks an element as pivot and partitions the array around it."
+        }
+    else:
+        return {
+            "name": "Insertion Sort",
+            "time_complexity": "O(n²)",
+            "space_complexity": "O(1)",
+            "description": "A simple sorting algorithm that builds the final sorted array one item at a time. Efficient for small data sets and nearly sorted arrays."
         }
 
 def main():
@@ -43,11 +50,12 @@ def main():
     # Algorithm selection
     algorithm = st.radio(
         "Select Sorting Algorithm:",
-        ["heap", "merge", "quick"],
+        ["heap", "merge", "quick", "insertion"],
         format_func=lambda x: {
             "heap": "Heap Sort",
             "merge": "Merge Sort",
-            "quick": "Quick Sort"
+            "quick": "Quick Sort",
+            "insertion": "Insertion Sort"
         }[x],
         horizontal=True
     )
