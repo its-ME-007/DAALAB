@@ -6,6 +6,8 @@ WORKDIR /app
 # Copy all necessary files
 COPY requirements.txt .
 COPY heap_sort.py .
+COPY merge_sort.py .
+COPY quick_sort.py .
 COPY sort_server.py .
 
 # Install dependencies

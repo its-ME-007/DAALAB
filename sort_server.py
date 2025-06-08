@@ -1,19 +1,23 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Literal
 import time
 from heap_sort import heap_sort
+from merge_sort import merge_sort
+from quick_sort import quick_sort
 
-app = FastAPI(title="Heap Sort API")
+app = FastAPI(title="Sorting Algorithms API")
 
 class SortRequest(BaseModel):
     array: List[int]
+    algorithm: Literal["heap", "merge", "quick"]
 
 class SortResponse(BaseModel):
     original_array: List[int]
     sorted_array: List[int]
     execution_time_ms: float
     is_sorted: bool
+    algorithm: str
 
 @app.post("/sort", response_model=SortResponse)
 async def sort_array(request: SortRequest):
@@ -21,9 +25,20 @@ async def sort_array(request: SortRequest):
         # Create a copy for sorting
         arr_copy = request.array.copy()
         
+        # Select algorithm
+        if request.algorithm == "heap":
+            sort_func = heap_sort
+            algo_name = "Heap Sort"
+        elif request.algorithm == "merge":
+            sort_func = merge_sort
+            algo_name = "Merge Sort"
+        else:
+            sort_func = quick_sort
+            algo_name = "Quick Sort"
+        
         # Measure execution time
         start_time = time.perf_counter()
-        sorted_arr = heap_sort(arr_copy)
+        sorted_arr = sort_func(arr_copy)
         end_time = time.perf_counter()
         
         # Calculate execution time
@@ -36,7 +51,8 @@ async def sort_array(request: SortRequest):
             original_array=request.array,
             sorted_array=sorted_arr,
             execution_time_ms=round(execution_time, 5),
-            is_sorted=is_sorted
+            is_sorted=is_sorted,
+            algorithm=algo_name
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

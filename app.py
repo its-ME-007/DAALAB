@@ -6,15 +6,61 @@ from heap_sort import generate_random_array
 # API endpoint
 API_URL = "http://localhost:8000/sort"
 
+def get_algorithm_info(algorithm):
+    """Return algorithm-specific information"""
+    if algorithm == "heap":
+        return {
+            "name": "Heap Sort",
+            "time_complexity": "O(n log n)",
+            "space_complexity": "O(1)",
+            "description": "A comparison-based sorting algorithm that uses a binary heap data structure."
+        }
+    elif algorithm == "merge":
+        return {
+            "name": "Merge Sort",
+            "time_complexity": "O(n log n)",
+            "space_complexity": "O(n)",
+            "description": "A divide-and-conquer algorithm that recursively breaks down the problem into smaller subproblems."
+        }
+    else:
+        return {
+            "name": "Quick Sort",
+            "time_complexity": "O(n log n) average, O(n²) worst",
+            "space_complexity": "O(log n)",
+            "description": "A divide-and-conquer algorithm that picks an element as pivot and partitions the array around it."
+        }
+
 def main():
     st.set_page_config(
-        page_title="Heap Sort Visualizer",
+        page_title="Sorting Algorithms Visualizer",
         page_icon="📊",
         layout="centered"
     )
 
-    st.title("🔧 Heap Sort Algorithm Visualizer")
+    st.title("🔧 Sorting Algorithms Visualizer")
     st.markdown("---")
+
+    # Algorithm selection
+    algorithm = st.radio(
+        "Select Sorting Algorithm:",
+        ["heap", "merge", "quick"],
+        format_func=lambda x: {
+            "heap": "Heap Sort",
+            "merge": "Merge Sort",
+            "quick": "Quick Sort"
+        }[x],
+        horizontal=True
+    )
+
+    # Display algorithm info
+    algo_info = get_algorithm_info(algorithm)
+    with st.expander("Algorithm Information"):
+        st.markdown(f"""
+        **Algorithm:** {algo_info['name']}  
+        **Time Complexity:** {algo_info['time_complexity']}  
+        **Space Complexity:** {algo_info['space_complexity']}  
+        **Description:** {algo_info['description']}
+        """)
 
     # Input section
     st.subheader("Input")
@@ -52,7 +98,10 @@ def main():
         if st.button("Sort Array", type="primary"):
             try:
                 # Send request to API
-                response = requests.post(API_URL, json={"array": arr})
+                response = requests.post(API_URL, json={
+                    "array": arr,
+                    "algorithm": algorithm
+                })
                 response.raise_for_status()
                 result = response.json()
                 
@@ -72,17 +121,9 @@ def main():
                     delta=None
                 )
                 
-                # Display algorithm info
-                st.subheader("Algorithm Information")
-                st.markdown("""
-                **Time Complexity:** O(n log n)  
-                **Space Complexity:** O(1)  
-                **Type:** Comparison-based sorting algorithm
-                """)
-                
                 # Verify sort
                 if result["is_sorted"]:
-                    st.success("✅ Array successfully sorted!")
+                    st.success(f"✅ Array successfully sorted using {result['algorithm']}!")
                 else:
                     st.error("❌ Error in sorting!")
                     
