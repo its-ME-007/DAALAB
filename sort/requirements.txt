@@ -1,0 +1,7 @@
+# No external dependencies required for heap sort
+# Python built-in modules used: sys, json, random
+streamlit==1.32.0
+pandas==2.2.1
+fastapi==0.110.0
+uvicorn==0.27.1
+pydantic==2.6.3
