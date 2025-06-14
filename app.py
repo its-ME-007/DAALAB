@@ -99,7 +99,7 @@ def main():
     if arr:
         # Display original array
         st.subheader("Original Array")
-        st.write(arr)
+        st.write(str(arr))
         st.write(f"Array size: {len(arr)}")
 
         # Sort button
@@ -115,12 +115,9 @@ def main():
                 
                 # Display results
                 st.subheader("Results")
-                col1, col2 = st.columns(2)
                 
-                with col1:
-                    st.metric("Original Array", str(result["original_array"]))
-                with col2:
-                    st.metric("Sorted Array", str(result["sorted_array"]))
+                st.metric("Original Array", str(result["original_array"]))
+                st.metric("Sorted Array", str(result["sorted_array"]))
                 
                 # Display execution time
                 st.metric(
