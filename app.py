@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 import requests
-from heap_sort import generate_random_array
+from sort.heap_sort import generate_random_array
 
 # API endpoint
 API_URL = "http://localhost:8000/sort"
