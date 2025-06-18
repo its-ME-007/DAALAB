@@ -1,345 +1,361 @@
-// DOM elements
-const codeEditor = document.getElementById('codeEditor');
-const runBtn = document.getElementById('runBtn');
-const clearBtn = document.getElementById('clearBtn');
-const output = document.getElementById('output');
-const statusIndicator = document.getElementById('statusIndicator');
-const statusDot = statusIndicator.querySelector('.status-dot');
-const statusText = statusIndicator.querySelector('.status-text');
-const loadingOverlay = document.getElementById('loadingOverlay');
+/* =========================================================================
+   Combined script.js + auth.js
+   -------------------------------------------------------------------------
+   Handles:
+   1. Supabase-backed auth (login, signup, logout, session storage, redirects)
+   2. Code-runner UI (editor, run / clear, status, examples, auto-save, etc.)
+   3. API calls with Authorization bearer token when available
+   ========================================================================= */
 
-// API configuration
-const API_BASE_URL = window.location.origin;
-const API_ENDPOINTS = {
-    runCode: '/api/run-code',
-    health: '/api/health'
-};
-
-// State management
-let isRunning = false;
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-});
-
-function initializeApp() {
-    // Add event listeners
-    runBtn.addEventListener('click', runCode);
-    clearBtn.addEventListener('click', clearEditor);
-    
-    // Add keyboard shortcuts
-    codeEditor.addEventListener('keydown', function(e) {
-        // Ctrl+Enter or Cmd+Enter to run code
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault();
-            runCode();
-        }
-        
-        // Tab key handling for indentation
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            insertAtCursor('\t');
-        }
-    });
-    
-    // Auto-resize textarea
-    codeEditor.addEventListener('input', autoResize);
-    
-    // Check API health on load
-    checkApiHealth();
-    
-    // Load saved code from localStorage if available
-    loadSavedCode();
-}
-
-// API functions
-async function runCode() {
-    if (isRunning) return;
-    
-    const code = codeEditor.value.trim();
-    if (!code) {
-        showError('Please enter some code to run!');
-        return;
-    }
-    
-    setRunningState(true);
-    showLoading(true);
-    
-    try {
-        const response = await fetch(API_ENDPOINTS.runCode, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            displayResult(result);
-        } else {
-            showError(result.detail || 'Failed to run code');
-        }
-        
-    } catch (error) {
-        console.error('Error running code:', error);
-        showError('Network error: Unable to connect to the server');
-    } finally {
-        setRunningState(false);
-        showLoading(false);
-    }
-}
-
-async function checkApiHealth() {
-    try {
-        const response = await fetch(API_ENDPOINTS.health);
-        if (response.ok) {
-            setStatus('ready', 'Ready');
-        } else {
-            setStatus('error', 'API Error');
-        }
-    } catch (error) {
-        setStatus('error', 'Offline');
-    }
-}
-
-// UI functions
-function displayResult(result) {
-    if (result.success) {
-        const outputContent = result.output || 'No output generated';
-        const runtimeInfo = `Execution time: ${result.runtime.toFixed(3)} seconds`;
-        
-        output.innerHTML = `
-            <div class="output-success">${escapeHtml(outputContent)}</div>
-            <div class="runtime-info">${runtimeInfo}</div>
-        `;
-        
-        setStatus('ready', 'Completed');
-    } else {
-        showError(result.error || 'Unknown error occurred');
-    }
-}
-
-function showError(message) {
-    output.innerHTML = `<div class="output-error">Error: ${escapeHtml(message)}</div>`;
-    setStatus('error', 'Error');
-}
-
-function setRunningState(running) {
-    isRunning = running;
-    runBtn.disabled = running;
-    runBtn.innerHTML = running ? 
-        '<i class="fas fa-spinner fa-spin"></i> Running...' : 
-        '<i class="fas fa-play"></i> Run Code';
-}
-
-function setStatus(type, text) {
-    statusDot.className = `status-dot ${type}`;
-    statusText.textContent = text;
-}
-
-function showLoading(show) {
-    if (show) {
-        loadingOverlay.classList.add('show');
-    } else {
-        loadingOverlay.classList.remove('show');
-    }
-}
-
-function clearEditor() {
-    if (confirm('Are you sure you want to clear the editor?')) {
-        codeEditor.value = '';
-        output.innerHTML = `
-            <div class="welcome-message">
-                <i class="fas fa-info-circle"></i>
-                <p>Write your Python code and click "Run Code" to execute it.</p>
-            </div>
-        `;
-        setStatus('ready', 'Ready');
-        autoResize();
-        saveCode();
-    }
-}
-
-function autoResize() {
-    codeEditor.style.height = 'auto';
-    codeEditor.style.height = Math.max(400, codeEditor.scrollHeight) + 'px';
-}
-
-function insertAtCursor(text) {
-    const start = codeEditor.selectionStart;
-    const end = codeEditor.selectionEnd;
-    const value = codeEditor.value;
-    
-    codeEditor.value = value.substring(0, start) + text + value.substring(end);
-    codeEditor.selectionStart = codeEditor.selectionEnd = start + text.length;
-    codeEditor.focus();
-}
-
-// Utility functions
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function saveCode() {
-    try {
-        localStorage.setItem('pythonCodeRunner_code', codeEditor.value);
-    } catch (error) {
-        console.warn('Could not save code to localStorage:', error);
-    }
-}
-
-function loadSavedCode() {
-    try {
-        const savedCode = localStorage.getItem('pythonCodeRunner_code');
-        if (savedCode) {
-            codeEditor.value = savedCode;
-            autoResize();
-        }
-    } catch (error) {
-        console.warn('Could not load code from localStorage:', error);
-    }
-}
-
-// Auto-save code when user stops typing
-let saveTimeout;
-codeEditor.addEventListener('input', function() {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveCode, 1000);
-});
-
-// Handle page visibility changes
-document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') {
-        checkApiHealth();
-    }
-});
-
-// Handle window resize
-window.addEventListener('resize', function() {
-    autoResize();
-});
-
-// Add some helpful features
-function addExampleCode(example) {
-    const examples = {
-        'hello': `# Hello World
-print("Hello, World!")
-print("Welcome to Python Code Runner!")`,
-
-        'math': `# Mathematical operations
-import math
-
-# Basic arithmetic
-a = 10
-b = 5
-print(f"Addition: {a + b}")
-print(f"Subtraction: {a - b}")
-print(f"Multiplication: {a * b}")
-print(f"Division: {a / b}")
-print(f"Power: {a ** b}")
-
-# Math functions
-print(f"Square root of {a}: {math.sqrt(a)}")
-print(f"Pi: {math.pi}")`,
-
-        'lists': `# List operations
-numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-# Basic list operations
-print(f"Original list: {numbers}")
-print(f"Length: {len(numbers)}")
-print(f"Sum: {sum(numbers)}")
-print(f"Average: {sum(numbers) / len(numbers)}")
-
-# List comprehensions
-squares = [n**2 for n in numbers]
-print(f"Squares: {squares}")
-
-# Filter even numbers
-evens = [n for n in numbers if n % 2 == 0]
-print(f"Even numbers: {evens}")`,
-
-        'functions': `# Function examples
-def greet(name):
-    return f"Hello, {name}!"
-
-def factorial(n):
-    if n <= 1:
-        return 1
-    return n * factorial(n - 1)
-
-def fibonacci(n):
-    if n <= 1:
-        return n
-    return fibonacci(n-1) + fibonacci(n-2)
-
-# Test functions
-print(greet("Python"))
-print(f"Factorial of 5: {factorial(5)}")
-print(f"Fibonacci(10): {fibonacci(10)}")`,
-
-        'classes': `# Class example
-class Calculator:
-    def __init__(self):
-        self.history = []
-    
-    def add(self, a, b):
-        result = a + b
-        self.history.append(f"{a} + {b} = {result}")
-        return result
-    
-    def multiply(self, a, b):
-        result = a * b
-        self.history.append(f"{a} * {b} = {result}")
-        return result
-    
-    def get_history(self):
-        return self.history
-
-# Create calculator instance
-calc = Calculator()
-print(f"5 + 3 = {calc.add(5, 3)}")
-print(f"4 * 7 = {calc.multiply(4, 7)}")
-print("History:", calc.get_history())`
+   (() => {
+    /* -------------------------------------------------
+       🔧  Global DOM look-ups (lazy; may be null)
+    ------------------------------------------------- */
+    const codeEditor       = document.getElementById('codeEditor');
+    const runBtn           = document.getElementById('runBtn');
+    const clearBtn         = document.getElementById('clearBtn');
+    const output           = document.getElementById('output');
+    const statusIndicator  = document.getElementById('statusIndicator');
+    const statusDot        = statusIndicator?.querySelector('.status-dot');
+    const statusText       = statusIndicator?.querySelector('.status-text');
+    const loadingOverlay   = document.getElementById('loadingOverlay');
+    const loginForm        = document.getElementById('loginForm');
+    const signupForm       = document.getElementById('signupForm');
+    const logoutButton     = document.getElementById('logoutButton');
+    const usernameDisplay  = document.getElementById('username');
+  
+    /* -------------------------------------------------
+       🌐  API End-points
+    ------------------------------------------------- */
+    const API_BASE_URL = window.location.origin;    // adapt automatically
+    const API_ENDPOINTS = {
+      runCode : `${API_BASE_URL}/api/run-code`,
+      health  : `${API_BASE_URL}/api/health`,
+      login   : `${API_BASE_URL}/api/auth/login`,
+      signup  : `${API_BASE_URL}/api/auth/signup`,
+      logout  : `${API_BASE_URL}/api/auth/logout`
     };
-    
-    if (examples[example]) {
-        codeEditor.value = examples[example];
+  
+    /* -------------------------------------------------
+       🗺️  Auth helpers
+    ------------------------------------------------- */
+    const getToken = () => localStorage.getItem('token');
+    const getUser  = () => JSON.parse(localStorage.getItem('user') || 'null');
+  
+    const saveSession = ({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user',  JSON.stringify(user));
+    };
+  
+    const clearSession = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    };
+  
+    const isAuthPage = () =>
+      window.location.pathname.includes('login.html') ||
+      window.location.pathname.includes('signup.html');
+  
+    /*
+     * Redirect logic & nav name
+     */
+    const syncAuthUI = () => {
+      const token = getToken();
+      const user  = getUser();
+      
+      console.log('syncAuthUI - token:', !!token, 'user:', !!user, 'isAuthPage:', isAuthPage());
+
+      if (token && user) {
+        console.log('User is authenticated, setting username:', user.email);
+        if (usernameDisplay) usernameDisplay.textContent = user.email;
+        if (isAuthPage()) {
+          console.log('On auth page, redirecting to index.html');
+          window.location.replace('index.html');
+        }
+      } else {
+        console.log('User not authenticated');
+        if (!isAuthPage()) {
+          console.log('Not on auth page, redirecting to login.html');
+          window.location.replace('login.html');
+        }
+      }
+    };
+  
+    /* -------------------------------------------------
+       🚀  Code-runner state
+    ------------------------------------------------- */
+    let isRunning = false;
+    let saveTimeout;
+  
+    /* -------------------------------------------------
+       🎬  MAIN: DOMContentLoaded
+    ------------------------------------------------- */
+    document.addEventListener('DOMContentLoaded', () => {
+      syncAuthUI();
+  
+      /* ------- AUTH: submit handlers ------- */
+      loginForm?.addEventListener('submit', handleLogin);
+      signupForm?.addEventListener('submit', handleSignup);
+      logoutButton?.addEventListener('click', handleLogout);
+  
+      /* ------- EDITOR: only present on index.html ------- */
+      if (codeEditor) {
+        runBtn   ?.addEventListener('click', runCode);
+        clearBtn ?.addEventListener('click', clearEditor);
+        codeEditor.addEventListener('keydown', editorKeydown);
+        codeEditor.addEventListener('input', autoResize);
+        codeEditor.addEventListener('input', autoSaveCode);
+  
+        checkApiHealth();
+        loadSavedCode();
         autoResize();
-        saveCode();
-    }
-}
-
-// Add example buttons to the UI (optional enhancement)
-function addExampleButtons() {
-    const examples = ['hello', 'math', 'lists', 'functions', 'classes'];
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'example-buttons';
-    buttonContainer.style.cssText = `
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-    `;
-    
-    examples.forEach(example => {
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-secondary';
-        btn.style.fontSize = '0.8rem';
-        btn.style.padding = '8px 16px';
-        btn.textContent = example.charAt(0).toUpperCase() + example.slice(1);
-        btn.onclick = () => addExampleCode(example);
-        buttonContainer.appendChild(btn);
+      }
     });
-    
-    const editorSection = document.querySelector('.editor-section');
-    editorSection.insertBefore(buttonContainer, editorSection.firstChild);
-}
-
-// Uncomment the line below to add example buttons
-// addExampleButtons(); 
+  
+    /* ========== AUTH HANDLERS ========== */
+  
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email    = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+  
+      console.log('Attempting login for:', email);
+  
+      try {
+        const res  = await fetch(API_ENDPOINTS.login, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        console.log('Login response:', data);
+        
+        if (data.success) {
+          console.log('Login successful, saving session...');
+          saveSession({
+            token : data.session.access_token,
+            user  : data.user
+          });
+          console.log('Session saved, redirecting to index.html...');
+          window.location.replace('index.html');
+        } else {
+          console.log('Login failed:', data.error);
+          alert(data.error || 'Login failed');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        alert('Login failed. Please try again.');
+      }
+    }
+  
+    async function handleSignup(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const email    = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+  
+      try {
+        const res  = await fetch(API_ENDPOINTS.signup, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ username, email, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Account created! Please login.');
+          window.location.replace('login.html');
+        } else {
+          alert(data.error || 'Signup failed');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Signup failed. Please try again.');
+      }
+    }
+  
+    async function handleLogout() {
+      try {
+        await fetch(API_ENDPOINTS.logout, {
+          method : 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+      } catch (_) {
+        /* ignore network errors on logout */
+      } finally {
+        clearSession();
+        window.location.replace('login.html');
+      }
+    }
+  
+    /* ========== EDITOR & RUNNER ========== */
+  
+    async function runCode() {
+      if (isRunning) return;
+      const code = codeEditor.value.trim();
+      if (!code) return showError('Please enter some code to run!');
+  
+      setRunning(true);
+      showLoading(true);
+  
+      try {
+        const res = await fetch(API_ENDPOINTS.runCode, {
+          method : 'POST',
+          headers: {
+            'Content-Type' : 'application/json',
+            ...(getToken() && { 'Authorization': `Bearer ${getToken()}` })
+          },
+          body   : JSON.stringify({ code })
+        });
+  
+        const result = await res.json();
+        res.ok ? displayResult(result)
+               : showError(result.detail || 'Failed to run code');
+      } catch (err) {
+        console.error(err);
+        showError('Network error: Unable to connect to the server');
+      } finally {
+        setRunning(false);
+        showLoading(false);
+      }
+    }
+  
+    async function checkApiHealth() {
+      try {
+        const res = await fetch(API_ENDPOINTS.health);
+        res.ok ? setStatus('ready', 'Ready')
+               : setStatus('error', 'API Error');
+      } catch {
+        setStatus('error', 'Offline');
+      }
+    }
+  
+    /* ---------- UI helpers ---------- */
+  
+    function displayResult(res) {
+      if (res.success) {
+        const content = res.output || 'No output generated';
+        const timeStr = `Execution time: ${res.runtime.toFixed(3)} s`;
+  
+        output.innerHTML =
+          `<div class="output-success">${escapeHtml(content)}</div>
+           <div class="runtime-info">${timeStr}</div>`;
+  
+        setStatus('ready', 'Completed');
+      } else {
+        showError(res.error || 'Unknown error');
+      }
+    }
+  
+    function showError(msg) {
+      output.innerHTML =
+        `<div class="output-error">Error: ${escapeHtml(msg)}</div>`;
+      setStatus('error', 'Error');
+    }
+  
+    /* ---------- Running / loading ---------- */
+    function setRunning(flag) {
+      isRunning = flag;
+      if (runBtn) {
+        runBtn.disabled = flag;
+        runBtn.innerHTML = flag
+          ? '<i class="fas fa-spinner fa-spin"></i> Running...'
+          : '<i class="fas fa-play"></i> Run Code';
+      }
+    }
+  
+    function showLoading(show) {
+      loadingOverlay?.classList.toggle('show', show);
+    }
+  
+    function setStatus(type, text) {
+      statusDot && (statusDot.className = `status-dot ${type}`);
+      statusText && (statusText.textContent = text);
+    }
+  
+    /* ---------- Editor niceties ---------- */
+  
+    function clearEditor() {
+      if (!confirm('Clear the editor?')) return;
+      codeEditor.value = '';
+      output.innerHTML =
+        `<div class="welcome-message">
+           <i class="fas fa-info-circle"></i>
+           <p>Write your Python code and click "Run Code" to execute it.</p>
+         </div>`;
+      setStatus('ready', 'Ready');
+      autoResize();
+      saveCode();
+    }
+  
+    function editorKeydown(e) {
+      /* Run (Ctrl/Cmd+Enter) */
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runCode();
+      }
+      /* Tab indent */
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        insertAtCursor('\t');
+      }
+    }
+  
+    function autoResize() {
+      codeEditor.style.height = 'auto';
+      codeEditor.style.height =
+        Math.max(400, codeEditor.scrollHeight) + 'px';
+    }
+  
+    function insertAtCursor(text) {
+      const start = codeEditor.selectionStart;
+      const end   = codeEditor.selectionEnd;
+      const val   = codeEditor.value;
+  
+      codeEditor.value =
+        val.substring(0, start) + text + val.substring(end);
+      codeEditor.selectionStart = codeEditor.selectionEnd =
+        start + text.length;
+      codeEditor.focus();
+    }
+  
+    /* ---------- Local-storage save ---------- */
+    const STORAGE_KEY = 'pythonCodeRunner_code';
+  
+    function saveCode() {
+      try {
+        localStorage.setItem(STORAGE_KEY, codeEditor.value);
+      } catch (err) {
+        console.warn('Could not save code:', err);
+      }
+    }
+  
+    function loadSavedCode() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) codeEditor.value = saved;
+      } catch (err) {
+        console.warn('Could not load code:', err);
+      }
+    }
+  
+    function autoSaveCode() {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveCode, 1000);
+    }
+  
+    /* ---------- HTML escape ---------- */
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  
+    /* ---------- Visibility & resize ---------- */
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkApiHealth();
+    });
+    window.addEventListener('resize', autoResize);
+  
+    /* ---------- Example snippets (optional) ---------- */
+    // ... (retain addExampleCode / addExampleButtons if desired)
+  })();

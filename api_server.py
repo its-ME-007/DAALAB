@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from container_runner import ContainerRunner
+from auth import auth_bp  # Import your authentication router
 import uvicorn
 import os
 
@@ -21,6 +22,9 @@ app.add_middleware(
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Register authentication routes
+app.include_router(auth_bp, prefix="/api/auth")
+
 class CodeRequest(BaseModel):
     code: str
 
@@ -35,6 +39,21 @@ async def read_root():
     """Serve the main HTML page"""
     return FileResponse("static/index.html")
 
+@app.get("/index.html")
+async def index_page():
+    """Serve the main HTML page (alternative route)"""
+    return FileResponse("static/index.html")
+
+@app.get("/login.html")
+async def login_page():
+    """Serve the login HTML page"""
+    return FileResponse("static/login.html")
+
+@app.get("/signup.html")
+async def signup_page():
+    """Serve the signup HTML page"""
+    return FileResponse("static/signup.html")
+
 @app.post("/api/run-code", response_model=CodeResponse)
 async def run_code(request: CodeRequest):
     """Execute Python code in a container"""
@@ -45,7 +64,6 @@ async def run_code(request: CodeRequest):
         runner = ContainerRunner()
         output, runtime = runner.run_code(request.code)
         
-        # Check if there was an error
         if output.startswith("Error:"):
             return CodeResponse(
                 output="",

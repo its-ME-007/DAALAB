@@ -1,23 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>🐍 Python Code Runner</title>
-    <link rel="stylesheet" href="/static/styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles & Icons -->
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
     <div class="container">
+        <!-- ╭────────────────────────────────────────── Header -->
         <header class="header">
             <div class="header-content">
                 <h1><i class="fas fa-code"></i> Python Code Runner</h1>
                 <p>Execute Python code safely in isolated containers</p>
             </div>
+
+            <!-- User / Logout controls (NEW) -->
+            <div class="user-controls">
+                <span id="username" class="username"></span>
+                <button id="logoutButton" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
         </header>
 
+        <!-- ╭─────────────────────────────────────── Main Content -->
         <main class="main-content">
+            <!-- ── Code Editor -->
             <div class="editor-section">
                 <div class="section-header">
                     <h2><i class="fas fa-edit"></i> Code Editor</h2>
@@ -30,9 +43,9 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="editor-container">
-                    <textarea id="codeEditor" placeholder="Write your Python code here..."># Your code here
+<textarea id="codeEditor" placeholder="Write your Python code here..."># Your code here
 # Example with fixed input
 numbers = [1, 2, 3, 4, 5]
 result = sum(numbers)
@@ -54,6 +67,7 @@ print(f"Factorial of 5: {factorial(5)}")</textarea>
                 </div>
             </div>
 
+            <!-- ── Output Panel -->
             <div class="output-section">
                 <div class="section-header">
                     <h2><i class="fas fa-terminal"></i> Output</h2>
@@ -62,7 +76,7 @@ print(f"Factorial of 5: {factorial(5)}")</textarea>
                         <span class="status-text">Ready</span>
                     </div>
                 </div>
-                
+
                 <div class="output-container">
                     <div id="output" class="output-content">
                         <div class="welcome-message">
@@ -74,6 +88,7 @@ print(f"Factorial of 5: {factorial(5)}")</textarea>
             </div>
         </main>
 
+        <!-- ╭───────────────────────────────────────── Info Cards -->
         <div class="info-section">
             <div class="info-card">
                 <h3><i class="fas fa-lightbulb"></i> Tips</h3>
@@ -84,10 +99,10 @@ print(f"Factorial of 5: {factorial(5)}")</textarea>
                     <li>Execution time is measured and displayed</li>
                 </ul>
             </div>
-            
+
             <div class="info-card">
                 <h3><i class="fas fa-code"></i> Example Code</h3>
-                <pre><code># Simple calculation
+<pre><code># Simple calculation
 x = 10
 y = 20
 print(f"Sum: {x + y}")
@@ -106,7 +121,7 @@ print(greet("World"))</code></pre>
         </div>
     </div>
 
-    <!-- Loading overlay -->
+    <!-- ╭──────────────────────────── Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
             <div class="spinner"></div>
@@ -114,6 +129,7 @@ print(greet("World"))</code></pre>
         </div>
     </div>
 
+    <!-- Combined auth + runner logic -->
     <script src="/static/script.js"></script>
 </body>
-</html> 
+</html>

@@ -1,4 +1,8 @@
-/* Reset and base styles */
+/* ====================================================================
+   🎨  CORE STYLES - Python Code Runner
+==================================================================== */
+
+/* Reset & Base */
 * {
     margin: 0;
     padding: 0;
@@ -9,7 +13,7 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    color: #333;
+    color: #2d3748;
     line-height: 1.6;
 }
 
@@ -19,65 +23,91 @@ body {
     padding: 20px;
 }
 
-/* Header */
+/* ====================================================================
+   📱  HEADER
+==================================================================== */
 .header {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 30px;
-    margin-bottom: 30px;
+    padding: 25px 30px;
+    margin-bottom: 25px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
-.header h1 {
-    font-size: 2.5rem;
+.header-content h1 {
+    font-size: 2.2rem;
     font-weight: 700;
     color: #2d3748;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
-.header h1 i {
-    color: #667eea;
-    margin-right: 15px;
-}
-
-.header p {
-    font-size: 1.1rem;
+.header-content p {
     color: #718096;
-    font-weight: 400;
+    font-size: 1rem;
 }
 
-/* Main content */
+/* ====================================================================
+   ✨  USER CONTROLS (logout + email display)
+==================================================================== */
+.user-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.username {
+    color: #2d3748;
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+/* ====================================================================
+   📝  MAIN CONTENT
+==================================================================== */
 .main-content {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin-bottom: 30px;
+    gap: 25px;
+    margin-bottom: 25px;
 }
 
-/* Section headers */
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ====================================================================
+   ✏️  EDITOR SECTION
+==================================================================== */
+.editor-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .section-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: #2d3748;
-}
-
-.section-header h2 i {
-    color: #667eea;
-    margin-right: 10px;
 }
 
 .header-actions {
@@ -85,111 +115,80 @@ body {
     gap: 10px;
 }
 
-/* Buttons */
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-}
-
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.9);
-    color: #718096;
-    border: 2px solid #e2e8f0;
-}
-
-.btn-secondary:hover {
-    background: #f7fafc;
-    border-color: #cbd5e0;
-    transform: translateY(-1px);
-}
-
-/* Editor section */
-.editor-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
 .editor-container {
-    background: #1a202c;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+    position: relative;
 }
 
 #codeEditor {
     width: 100%;
     min-height: 400px;
     padding: 20px;
-    border: none;
-    background: #1a202c;
-    color: #e2e8f0;
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 14px;
+    font-size: 0.9rem;
     line-height: 1.5;
+    background: #f7fafc;
+    color: #2d3748;
     resize: vertical;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#codeEditor:focus {
     outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
 }
 
-#codeEditor::placeholder {
-    color: #718096;
-}
-
-/* Output section */
+/* ====================================================================
+   📊  OUTPUT SECTION
+==================================================================== */
 .output-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 20px;
+    padding: 25px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .output-container {
     background: #1a202c;
     border-radius: 15px;
-    overflow: hidden;
-    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 20px;
     min-height: 400px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #e2e8f0;
+    overflow-y: auto;
 }
 
 .output-content {
-    padding: 20px;
-    color: #e2e8f0;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 14px;
-    line-height: 1.5;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.output-success {
+    color: #68d391;
+}
+
+.output-error {
+    color: #fc8181;
+}
+
+.runtime-info {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #4a5568;
+    color: #a0aec0;
+    font-size: 0.85rem;
 }
 
 .welcome-message {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #718096;
-    font-style: italic;
+    color: #a0aec0;
 }
 
 .welcome-message i {
@@ -197,12 +196,14 @@ body {
     color: #667eea;
 }
 
-/* Status indicator */
+/* ====================================================================
+   📋  STATUS INDICATOR
+==================================================================== */
 .status-indicator {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
 }
 
@@ -210,18 +211,20 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #48bb78;
-    animation: pulse 2s infinite;
+    background: #a0aec0;
 }
 
-.status-dot.running {
-    background: #ed8936;
-    animation: pulse 1s infinite;
+.status-dot.ready {
+    background: #68d391;
 }
 
 .status-dot.error {
-    background: #f56565;
-    animation: none;
+    background: #fc8181;
+}
+
+.status-dot.running {
+    background: #f6ad55;
+    animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
@@ -229,11 +232,13 @@ body {
     50% { opacity: 0.5; }
 }
 
-/* Info section */
+/* ====================================================================
+   💡  INFO CARDS
+==================================================================== */
 .info-section {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
 }
 
 .info-card {
@@ -245,17 +250,13 @@ body {
 }
 
 .info-card h3 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: #2d3748;
     margin-bottom: 15px;
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.info-card h3 i {
-    color: #667eea;
+    gap: 8px;
 }
 
 .info-card ul {
@@ -265,17 +266,12 @@ body {
 
 .info-card li {
     padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
     color: #4a5568;
-    position: relative;
-    padding-left: 20px;
 }
 
-.info-card li::before {
-    content: "•";
-    color: #667eea;
-    font-weight: bold;
-    position: absolute;
-    left: 0;
+.info-card li:last-child {
+    border-bottom: none;
 }
 
 .info-card code {
@@ -283,27 +279,27 @@ body {
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #2d3748;
 }
 
 .info-card pre {
     background: #1a202c;
-    color: #e2e8f0;
-    padding: 15px;
     border-radius: 10px;
+    padding: 15px;
     overflow-x: auto;
-    font-size: 0.85rem;
-    line-height: 1.4;
+    margin-top: 10px;
 }
 
 .info-card pre code {
     background: none;
+    color: #e2e8f0;
     padding: 0;
-    color: inherit;
 }
 
-/* Loading overlay */
+/* ====================================================================
+   🔄  LOADING OVERLAY
+==================================================================== */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -312,22 +308,27 @@ body {
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(5px);
-    display: none;
+    display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
 }
 
 .loading-overlay.show {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
 }
 
 .loading-content {
     background: rgba(255, 255, 255, 0.95);
-    padding: 40px;
+    backdrop-filter: blur(10px);
     border-radius: 20px;
+    padding: 40px;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
 }
 
 .spinner {
@@ -350,48 +351,86 @@ body {
     font-weight: 500;
 }
 
-/* Success and error states */
-.output-success {
-    color: #48bb78;
-}
-
-.output-error {
-    color: #f56565;
-}
-
-.runtime-info {
-    background: rgba(72, 187, 120, 0.1);
-    border: 1px solid rgba(72, 187, 120, 0.3);
-    border-radius: 8px;
-    padding: 10px;
-    margin-top: 10px;
-    color: #48bb78;
+/* ====================================================================
+   🔘  BUTTONS
+==================================================================== */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
     font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
 }
 
-/* Responsive design */
-@media (max-width: 1024px) {
-    .main-content {
-        grid-template-columns: 1fr;
-    }
-    
-    .info-section {
-        grid-template-columns: 1fr;
-    }
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.btn-secondary:hover {
+    background: #cbd5e0;
+}
+
+.btn-danger {
+    background: #f56565;
+    color: white;
+    box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
+}
+
+.btn-danger:hover {
+    background: #e53e3e;
+}
+
+/* ====================================================================
+   📱  RESPONSIVE DESIGN
+==================================================================== */
 @media (max-width: 768px) {
     .container {
         padding: 15px;
     }
     
-    .header h1 {
-        font-size: 2rem;
+    .header {
+        padding: 20px;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-content h1 {
+        font-size: 1.8rem;
+    }
+    
+    .user-controls {
+        flex-direction: column;
+        align-items: center;
     }
     
     .section-header {
         flex-direction: column;
-        gap: 15px;
         align-items: flex-start;
     }
     
@@ -400,26 +439,115 @@ body {
         justify-content: space-between;
     }
     
-    .btn {
-        padding: 10px 20px;
-        font-size: 0.85rem;
+    .info-section {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 480px) {
-    .header {
-        padding: 20px;
+    .header-content h1 {
+        font-size: 1.5rem;
     }
     
-    .header h1 {
-        font-size: 1.8rem;
+    .section-header h2 {
+        font-size: 1.2rem;
     }
     
-    .section-header {
+    #codeEditor {
+        font-size: 0.85rem;
         padding: 15px;
     }
     
-    .info-card {
-        padding: 20px;
+    .output-container {
+        font-size: 0.85rem;
+        padding: 15px;
     }
-} 
+}
+
+/* ====================================================================
+   ✨  AUTH PAGES (login & signup)
+==================================================================== */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+}
+
+.auth-box {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 25px;
+    padding: 40px 35px 45px;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+
+.auth-box h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 25px;
+}
+
+.auth-box .form-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.auth-box label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.auth-box input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-box input:focus {
+    border-color: #667eea;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+}
+
+.auth-box button[type="submit"] {
+    width: 100%;
+    margin-top: 15px;
+}
+
+.auth-switch {
+    margin-top: 22px;
+    font-size: 0.9rem;
+    color: #4a5568;
+}
+
+.auth-switch a {
+    color: #667eea;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-box {
+        padding: 30px 25px 35px;
+        border-radius: 20px;
+    }
+    
+    .auth-box h2 {
+        font-size: 1.6rem;
+    }
+}
