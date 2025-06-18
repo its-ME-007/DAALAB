@@ -193,20 +193,36 @@
       if (isRunning) return;
       const code = codeEditor.value.trim();
       if (!code) return showError('Please enter some code to run!');
-  
+
+      // Get algorithm details
+      const algorithmName = document.getElementById('algorithmName')?.value?.trim();
+      const inputSize = document.getElementById('inputSize')?.value;
+
       setRunning(true);
       showLoading(true);
-  
+
       try {
+        const requestBody = {
+          code: code
+        };
+
+        // Add algorithm details if provided
+        if (algorithmName) {
+          requestBody.algorithm_name = algorithmName;
+        }
+        if (inputSize) {
+          requestBody.input_size = parseInt(inputSize);
+        }
+
         const res = await fetch(API_ENDPOINTS.runCode, {
           method : 'POST',
           headers: {
             'Content-Type' : 'application/json',
             ...(getToken() && { 'Authorization': `Bearer ${getToken()}` })
           },
-          body   : JSON.stringify({ code })
+          body   : JSON.stringify(requestBody)
         });
-  
+
         const result = await res.json();
         res.ok ? displayResult(result)
                : showError(result.detail || 'Failed to run code');
@@ -235,11 +251,14 @@
       if (res.success) {
         const content = res.output || 'No output generated';
         const timeStr = `Execution time: ${res.runtime.toFixed(3)} s`;
-  
+        const dbStatus = res.saved_to_db ? 
+          '<div class="db-save-success"><i class="fas fa-database"></i> Runtime data saved to database</div>' : '';
+
         output.innerHTML =
           `<div class="output-success">${escapeHtml(content)}</div>
-           <div class="runtime-info">${timeStr}</div>`;
-  
+           <div class="runtime-info">${timeStr}</div>
+           ${dbStatus}`;
+
         setStatus('ready', 'Completed');
       } else {
         showError(res.error || 'Unknown error');
