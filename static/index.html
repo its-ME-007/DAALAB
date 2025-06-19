@@ -3,147 +3,79 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🐍 Python Code Runner</title>
-
-    <!-- Styles & Icons -->
+    <title>Welcome | Attempy-DAA</title>
     <link rel="stylesheet" href="/static/styles.css" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7fafd;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .landing-container {
+            max-width: 420px;
+            margin: 80px auto 0 auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+            padding: 2.5rem 2rem 2rem 2rem;
+            text-align: center;
+        }
+        .landing-title {
+            font-size: 2.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3a4a;
+        }
+        .landing-desc {
+            color: #6b7a90;
+            font-size: 1.1rem;
+            margin-bottom: 2.2rem;
+        }
+        .landing-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        .landing-btn {
+            font-size: 1.15rem;
+            font-weight: 600;
+            padding: 1rem 0;
+            border: none;
+            border-radius: 10px;
+            background: #3498db;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.18s;
+            box-shadow: 0 2px 8px rgba(52,152,219,0.07);
+            text-decoration: none;
+            display: block;
+        }
+        .landing-btn.visualizer {
+            background: #27ae60;
+        }
+        .landing-btn:hover {
+            filter: brightness(0.95);
+        }
+        @media (max-width: 600px) {
+            .landing-container {
+                margin: 32px 8px 0 8px;
+                padding: 1.5rem 0.5rem 1.5rem 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- ╭────────────────────────────────────────── Header -->
-        <header class="header">
-            <div class="header-content">
-                <h1><i class="fas fa-code"></i> Python Code Runner</h1>
-                <p>Execute Python code safely in isolated containers</p>
-            </div>
-
-            <!-- User / Logout controls (NEW) -->
-            <div class="user-controls">
-                <span id="username" class="username"></span>
-                <button id="logoutButton" class="btn btn-danger">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-        </header>
-
-        <!-- ╭─────────────────────────────────────── Main Content -->
-        <main class="main-content">
-            <!-- ── Code Editor -->
-            <div class="editor-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-edit"></i> Code Editor</h2>
-                    <div class="header-actions">
-                        <button id="clearBtn" class="btn btn-secondary">
-                            <i class="fas fa-trash"></i> Clear
-                        </button>
-                        <button id="runBtn" class="btn btn-primary">
-                            <i class="fas fa-play"></i> Run Code
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Algorithm Details Form -->
-                <div class="algorithm-details">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="algorithmName">Algorithm Name</label>
-                            <input type="text" id="algorithmName" placeholder="e.g., Bubble Sort, Quick Sort, Linear Search" />
-                        </div>
-                        <div class="form-group">
-                            <label for="inputSize">Input Size</label>
-                            <input type="number" id="inputSize" placeholder="e.g., 100, 1000, 10000" min="1" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="editor-container">
-<textarea id="codeEditor" placeholder="Write your Python code here..."># Your code here
-# Example with fixed input
-numbers = [1, 2, 3, 4, 5]
-result = sum(numbers)
-
-# Print the result
-print(f"Sum of numbers: {result}")
-
-# You can add more complex examples
-for i in range(5):
-    print(f"Number: {i}")
-
-# Calculate factorial
-def factorial(n):
-    if n <= 1:
-        return 1
-    return n * factorial(n - 1)
-
-print(f"Factorial of 5: {factorial(5)}")</textarea>
-                </div>
-            </div>
-
-            <!-- ── Output Panel -->
-            <div class="output-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-terminal"></i> Output</h2>
-                    <div class="status-indicator" id="statusIndicator">
-                        <span class="status-dot"></span>
-                        <span class="status-text">Ready</span>
-                    </div>
-                </div>
-
-                <div class="output-container">
-                    <div id="output" class="output-content">
-                        <div class="welcome-message">
-                            <i class="fas fa-info-circle"></i>
-                            <p>Write your Python code and click "Run Code" to execute it.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- ╭───────────────────────────────────────── Info Cards -->
-        <div class="info-section">
-            <div class="info-card">
-                <h3><i class="fas fa-lightbulb"></i> Tips</h3>
-                <ul>
-                    <li>Include all input values directly in your code</li>
-                    <li>Use <code>print()</code> statements to show output</li>
-                    <li>Code runs in an isolated container for safety</li>
-                    <li>Execution time is measured and displayed</li>
-                </ul>
-            </div>
-
-            <div class="info-card">
-                <h3><i class="fas fa-code"></i> Example Code</h3>
-<pre><code># Simple calculation
-x = 10
-y = 20
-print(f"Sum: {x + y}")
-
-# List operations
-numbers = [1, 2, 3, 4, 5]
-squares = [n**2 for n in numbers]
-print(f"Squares: {squares}")
-
-# Function definition
-def greet(name):
-    return f"Hello, {name}!"
-
-print(greet("World"))</code></pre>
-            </div>
+    <div class="landing-container">
+        <div class="landing-title">Welcome to Attempy-DAA</div>
+        <div class="landing-desc">Choose what you want to do:</div>
+        <div class="landing-btns">
+            <a href="/compiler.html" class="landing-btn compiler">Go to Compiler</a>
+            <a href="/visualization.html" class="landing-btn visualizer">Go to Visualizer</a>
         </div>
     </div>
-
-    <!-- ╭──────────────────────────── Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <p>Running code...</p>
-        </div>
-    </div>
-
-    <!-- Combined auth + runner logic -->
-    <script src="/static/script.js"></script>
 </body>
 </html>

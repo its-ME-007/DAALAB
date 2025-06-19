@@ -9,6 +9,7 @@ import uvicorn
 import os
 from supabase import create_client
 from dotenv import load_dotenv
+from visualize import register_visualization_routes
 
 load_dotenv()
 
@@ -63,6 +64,16 @@ async def login_page():
 async def signup_page():
     """Serve the signup HTML page"""
     return FileResponse("static/signup.html")
+
+@app.get("/visualization.html")
+async def visualization_page():
+    """Serve the visualization HTML page"""
+    return FileResponse("static/visualization.html")
+
+@app.get("/compiler.html")
+async def compiler_page():
+    """Serve the compiler HTML page"""
+    return FileResponse("static/compiler.html")
 
 @app.post("/api/run-code", response_model=CodeResponse)
 async def run_code(request: CodeRequest, auth_request: Request):
@@ -211,6 +222,8 @@ async def get_runtime_summary(auth_request: Request):
             
         except Exception as fallback_error:
             raise HTTPException(status_code=500, detail=f"Failed to retrieve runtime summary: {str(e)}")
+
+register_visualization_routes(app)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
