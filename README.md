@@ -56,7 +56,7 @@ http://localhost:8000
 
 3. Write your Python code in the editor and click "Run Code" or press Ctrl+Enter.
 
-### Option 2: Streamlit Frontend
+### Option 2: Streamlit Frontend (on the code_runner branch)
 
 1. Start the Streamlit app:
 ```bash
@@ -65,8 +65,14 @@ streamlit run code_runner_app.py
 
 2. The app will automatically open in your browser, or navigate to:
 ```
-http://localhost:8501
+http://localhost:8501 
 ```
+
+### NOTE: To use the agent, run the backend on port **8005**, then run 
+```bash
+adk web
+``` 
+this will start up the dev ui of the google adk package
 
 ## API Endpoints
 
