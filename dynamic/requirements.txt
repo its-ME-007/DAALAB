@@ -1,0 +1,14 @@
+# Dynamic Programming Algorithms Package Requirements
+# No external dependencies required - uses only Python standard library
+
+# For testing and development (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# For performance testing (optional)
+timeit
+memory-profiler>=0.60.0
+
+# For visualization (optional)
+matplotlib>=3.5.0
+numpy>=1.21.0 

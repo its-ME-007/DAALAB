@@ -1,0 +1,2 @@
+# No external dependencies required for greedy algorithms
+# Python built-in modules used: heapq, time, collections, random 
