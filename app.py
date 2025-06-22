@@ -31,6 +31,27 @@ from dynamic import (
 def generate_random_array(size, max_val):
     return [random.randint(1, max_val) for _ in range(size)]
 
+def measure_execution_time(func, *args, iterations=1000):
+    """
+    Measure execution time of a function with multiple iterations for accuracy.
+    Returns the average execution time in milliseconds.
+    """
+    # Warm up
+    for _ in range(10):
+        func(*args)
+    
+    # Measure
+    start_time = time.perf_counter()
+    for _ in range(iterations):
+        result = func(*args)
+    end_time = time.perf_counter()
+    
+    # Calculate average time in milliseconds
+    total_time_ms = (end_time - start_time) * 1000
+    avg_time_ms = total_time_ms / iterations
+    
+    return avg_time_ms, result
+
 def main():
     st.set_page_config(page_title="Algorithm Visualizer", page_icon="🔍", layout="wide")
     st.title("🔍 Algorithm Visualizer")
@@ -85,18 +106,17 @@ def handle_sorting():
         st.write(f"Array size: {len(arr)}")
 
         if st.button("Sort Array", type="primary"):
-            start_time = time.time()
+            # Determine number of iterations based on array size
+            iterations = min(1000, max(100, len(arr) * 2))
             
             if algorithm == "heap":
-                sorted_arr = heap_sort(arr.copy())
+                execution_time, sorted_arr = measure_execution_time(heap_sort, arr.copy(), iterations=iterations)
             elif algorithm == "merge":
-                sorted_arr = merge_sort(arr.copy())
+                execution_time, sorted_arr = measure_execution_time(merge_sort, arr.copy(), iterations=iterations)
             elif algorithm == "quick":
-                sorted_arr = quick_sort(arr.copy())
+                execution_time, sorted_arr = measure_execution_time(quick_sort, arr.copy(), iterations=iterations)
             else:  # insertion
-                sorted_arr = insertion_sort(arr.copy())
-            
-            execution_time = (time.time() - start_time) * 1000
+                execution_time, sorted_arr = measure_execution_time(insertion_sort, arr.copy(), iterations=iterations)
             
             st.subheader("Results")
             col1, col2, col3 = st.columns(3)
@@ -105,7 +125,10 @@ def handle_sorting():
             with col2:
                 st.metric("Sorted Array", str(sorted_arr))
             with col3:
-                st.metric("Execution Time", f"{execution_time:.5f} ms")
+                st.metric("Execution Time", f"{execution_time:.6f} ms")
+            
+            # Show iterations info for transparency
+            st.info(f"⏱️ Timing based on {iterations:,} iterations for accuracy")
             
             if sorted_arr == sorted(arr):
                 st.success("✅ Array successfully sorted!")
@@ -135,8 +158,8 @@ def handle_searching():
         else:
             arr = []
     else:
-        size = st.slider("Select array size:", 5, 100, 15)
-        max_val = st.slider("Select maximum value:", 10, 1000, 100)
+        size = st.slider("Select array size:", 5, 1000, 100)
+        max_val = st.slider("Select maximum value:", 10, 10000, 1000)
         arr = generate_random_array(size, max_val)
 
     if arr:
@@ -151,28 +174,30 @@ def handle_searching():
         target = st.number_input("Enter target number to search:", value=arr[0] if arr else 0)
 
         if st.button("Search", type="primary"):
-            start_time = time.time()
+            # Determine number of iterations based on array size
+            iterations = min(10000, max(1000, len(arr) * 10))
             
             if algorithm == "linear":
-                result = linear_search(arr, target)
+                execution_time, result = measure_execution_time(linear_search, arr, target, iterations=iterations)
             elif algorithm == "binary":
-                result = binary_search(arr, target)
+                execution_time, result = measure_execution_time(binary_search, arr, target, iterations=iterations)
             else:  # interpolation
-                result = interpolation_search(arr, target)
-            
-            execution_time = (time.time() - start_time) * 1000
+                execution_time, result = measure_execution_time(interpolation_search, arr, target, iterations=iterations)
             
             st.subheader("Results")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Array", str(arr))
+                st.metric("Array Size", len(arr))
             with col2:
                 st.metric("Target", str(target))
             with col3:
-                st.metric("Execution Time", f"{execution_time:.5f} ms")
+                st.metric("Execution Time", f"{execution_time:.6f} ms")
             
-            if result.get("found_index") is not None:
-                st.success(f"✅ Found {target} at index {result['found_index']}")
+            # Show iterations info for transparency
+            st.info(f"⏱️ Timing based on {iterations:,} iterations for accuracy")
+            
+            if result != -1:
+                st.success(f"✅ Found {target} at index {result}")
             else:
                 st.warning(f"❌ {target} not found in the array")
 
@@ -213,6 +238,9 @@ def handle_huffman():
         st.write(f"**Text Length:** {len(text)} characters")
         
         if st.button("Compress Text", type="primary"):
+            # Determine number of iterations based on text length
+            iterations = min(100, max(10, len(text) // 10))
+            
             result = huffman_compression(text)
             
             if "error" not in result:
@@ -226,7 +254,7 @@ def handle_huffman():
                 with col3:
                     st.metric("Compression Ratio", f"{result['compression_ratio']:.2f}%")
                 
-                st.metric("Execution Time", f"{result['execution_time_ms']:.5f} ms")
+                st.metric("Execution Time", f"{result['execution_time_ms']:.6f} ms")
                 
                 # Display character frequencies
                 st.subheader("Character Frequencies")
@@ -242,7 +270,7 @@ def handle_huffman():
                 decomp_result = huffman_decompression(result['encoded_text'], result['tree_root'])
                 st.subheader("Decompression Test")
                 st.write(f"**Decoded Text:** {decomp_result['decoded_text']}")
-                st.write(f"**Decompression Time:** {decomp_result['execution_time_ms']:.5f} ms")
+                st.write(f"**Decompression Time:** {decomp_result['execution_time_ms']:.6f} ms")
                 
                 if decomp_result['decoded_text'] == text:
                     st.success("✅ Compression and decompression successful!")
@@ -287,6 +315,9 @@ def handle_knapsack():
         st.write(f"**Knapsack Capacity:** {capacity}")
         
         if st.button("Solve Knapsack", type="primary"):
+            # Determine number of iterations based on problem size
+            iterations = min(100, max(10, len(weights) * 2))
+            
             result = fractional_knapsack(weights, values, capacity)
             
             if "error" not in result:
@@ -298,7 +329,7 @@ def handle_knapsack():
                 with col2:
                     st.metric("Remaining Capacity", f"{result['remaining_capacity']:.2f}")
                 with col3:
-                    st.metric("Execution Time", f"{result['execution_time_ms']:.5f} ms")
+                    st.metric("Execution Time", f"{result['execution_time_ms']:.6f} ms")
                 
                 st.subheader("Selected Items")
                 selected_data = {"Item": [f"Item {item['item_index']+1}" for item in result['selected_items']], 
@@ -323,6 +354,9 @@ def handle_prims():
     st.dataframe(graph)
     
     if st.button("Find MST", type="primary"):
+        # Determine number of iterations based on graph size
+        iterations = min(50, max(5, num_vertices))
+        
         result = prims_mst(graph, start_vertex)
         
         if "error" not in result:
@@ -334,7 +368,7 @@ def handle_prims():
             with col2:
                 st.metric("Edges in MST", result['num_edges_in_mst'])
             with col3:
-                st.metric("Execution Time", f"{result['execution_time_ms']:.5f} ms")
+                st.metric("Execution Time", f"{result['execution_time_ms']:.6f} ms")
             
             st.subheader("MST Edges")
             edges_data = {"From": [edge['from'] for edge in result['mst_edges']], 
@@ -360,6 +394,9 @@ def handle_kruskals():
     st.dataframe(graph)
     
     if st.button("Find MST", type="primary"):
+        # Determine number of iterations based on graph size
+        iterations = min(50, max(5, num_vertices))
+        
         result = kruskals_mst(graph)
         
         if "error" not in result:
@@ -371,7 +408,7 @@ def handle_kruskals():
             with col2:
                 st.metric("Edges in MST", result['num_edges_in_mst'])
             with col3:
-                st.metric("Execution Time", f"{result['execution_time_ms']:.5f} ms")
+                st.metric("Execution Time", f"{result['execution_time_ms']:.6f} ms")
             
             st.subheader("MST Edges")
             edges_data = {"From": [edge['from'] for edge in result['mst_edges']], 
@@ -390,32 +427,43 @@ def handle_dijkstra():
     num_vertices = st.slider("Number of vertices:", 3, 10, 5)
     density = st.slider("Graph density:", 0.3, 1.0, 0.7)
     max_weight = st.slider("Maximum edge weight:", 10, 200, 100)
-    source = st.selectbox("Source vertex:", range(num_vertices))
+    start_vertex = st.selectbox("Source vertex:", range(num_vertices))
     
-    graph = generate_sample_graph(num_vertices, density, max_weight, directed=True)
+    graph = generate_sample_graph(num_vertices, density, max_weight)
     
     st.write("**Graph (Adjacency Matrix):**")
     st.dataframe(graph)
     
-    if st.button("Find Shortest Paths", type="primary"):
-        result = dijkstras_shortest_path(graph, source)
+    if st.button("Find Shortest Path", type="primary"):
+        # Determine number of iterations based on graph size
+        iterations = min(50, max(5, num_vertices))
+        
+        result = dijkstras_shortest_path(graph, start_vertex)
         
         if "error" not in result:
-            st.subheader("Shortest Paths from Source")
+            st.subheader("Shortest Path Results")
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Source Vertex", source)
+                st.metric("Start Vertex", start_vertex)
             with col2:
-                st.metric("Vertices Processed", result['vertices_processed'])
+                st.metric("Execution Time", f"{result['execution_time_ms']:.6f} ms")
             with col3:
-                st.metric("Execution Time", f"{result['execution_time_ms']:.5f} ms")
+                st.metric("Reachable Vertices", result['reachable_count'])
             
             st.subheader("Shortest Distances")
-            distances_data = {"Vertex": list(range(len(result['distances']))), 
-                            "Distance": [d if d != float('inf') else "∞" for d in result['distances']],
-                            "Path": [" → ".join(map(str, result['paths'][i])) if result['paths'][i] else "No path" for i in range(len(result['distances']))]}
+            distances_data = {"Vertex": list(range(num_vertices)), 
+                            "Distance": [result['distances'][i] if result['distances'][i] != float('inf') else "∞" for i in range(num_vertices)]}
             st.dataframe(distances_data)
+            
+            # Show path to a specific vertex
+            target_vertex = st.selectbox("Show path to vertex:", range(num_vertices))
+            if result['distances'][target_vertex] != float('inf'):
+                path = result['paths'][target_vertex]
+                st.write(f"**Path to vertex {target_vertex}:** {' → '.join(map(str, path))}")
+                st.write(f"**Distance:** {result['distances'][target_vertex]}")
+            else:
+                st.write(f"**Vertex {target_vertex} is not reachable from {start_vertex}**")
 
 def handle_dynamic():
     st.header("🔍 Dynamic Programming Algorithms")
@@ -472,15 +520,16 @@ def handle_knapsack_01():
         st.write(f"**Knapsack Capacity:** {capacity}")
         
         if st.button("Solve Knapsack", type="primary"):
-            start_time = time.time()
+            # Determine number of iterations based on problem size
+            iterations = min(100, max(10, len(weights) * 2))
             
             # Get maximum value
-            max_value_result = knapsack_01_dp(weights, values, capacity)
+            execution_time, max_value_result = measure_execution_time(knapsack_01_dp, weights, values, capacity, iterations=iterations)
             
-            # Get selected items
+            # Get selected items (single run for this)
+            start_time = time.perf_counter()
             max_value_with_items, selected_indices = knapsack_01_get_items(weights, values, capacity)
-            
-            execution_time = (time.time() - start_time) * 1000
+            items_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Solution")
             
@@ -488,9 +537,12 @@ def handle_knapsack_01():
             with col1:
                 st.metric("Maximum Value", f"{max_value_result}")
             with col2:
-                st.metric("Execution Time", f"{execution_time:.5f} ms")
+                st.metric("Execution Time", f"{execution_time:.6f} ms")
             with col3:
                 st.metric("Selected Items", len(selected_indices))
+            
+            # Show iterations info for transparency
+            st.info(f"⏱️ Timing based on {iterations:,} iterations for accuracy")
             
             st.subheader("Selected Items")
             if selected_indices:
@@ -512,12 +564,15 @@ def handle_subset_sum():
     
     input_method = st.radio("Choose input method:", ["Manual Input", "Sample Data"], horizontal=True)
     
+    target = None  # Initialize target
+    numbers = []  # Initialize numbers
+    
     if input_method == "Manual Input":
         col1, col2 = st.columns(2)
         with col1:
             numbers_input = st.text_input("Numbers (space-separated):", placeholder="e.g., 1 2 3 4 5")
         with col2:
-            target_input = st.number_input("Target sum:", value=9)
+            target = st.number_input("Target sum:", value=9)
         
         if numbers_input:
             try:
@@ -525,29 +580,29 @@ def handle_subset_sum():
             except ValueError:
                 st.error("Please enter valid numbers")
                 return
-        else:
-            numbers = []
     else:
         size = st.slider("Select array size:", 5, 10, 5)
         max_val = st.slider("Select maximum value:", 1, 100, 50)
         numbers = generate_random_array(size, max_val)
         target = sum(numbers) // 2  # Use half the sum as target
     
-    if numbers:
+    # Only display and process if we have valid data
+    if numbers and target is not None:
         st.write("**Numbers:**")
         st.write(str(numbers))
         st.write(f"**Target Sum:** {target}")
         
         if st.button("Find Subset", type="primary"):
-            start_time = time.time()
+            # Determine number of iterations based on problem size
+            iterations = min(100, max(10, len(numbers) * 2))
             
             # Check if subset exists
-            subset_exists = subset_sum_dp(numbers, target)
+            execution_time, subset_exists = measure_execution_time(subset_sum_dp, numbers, target, iterations=iterations)
             
-            # Get the actual subset if it exists
+            # Get the actual subset if it exists (single run for this)
+            start_time = time.perf_counter()
             exists, subset = subset_sum_get_subset(numbers, target)
-            
-            execution_time = (time.time() - start_time) * 1000
+            subset_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Results")
             
@@ -555,9 +610,12 @@ def handle_subset_sum():
             with col1:
                 st.metric("Subset Exists", "Yes" if subset_exists else "No")
             with col2:
-                st.metric("Execution Time", f"{execution_time:.5f} ms")
+                st.metric("Execution Time", f"{execution_time:.6f} ms")
             with col3:
                 st.metric("Subset Sum", sum(subset) if subset else 0)
+            
+            # Show iterations info for transparency
+            st.info(f"⏱️ Timing based on {iterations:,} iterations for accuracy")
             
             if subset_exists and subset:
                 st.success("✅ Subset found!")
@@ -601,15 +659,16 @@ def handle_coin_change():
         st.write(f"**Amount:** {amount}")
         
         if st.button("Find Minimum Coins", type="primary"):
-            start_time = time.time()
+            # Determine number of iterations based on problem size
+            iterations = min(100, max(10, len(coins) * 2))
             
             # Find minimum coins needed
-            min_coins = coin_change_min_coins(coins, amount)
+            execution_time, min_coins = measure_execution_time(coin_change_min_coins, coins, amount, iterations=iterations)
             
-            # Count number of ways
+            # Count number of ways (single run for this)
+            start_time = time.perf_counter()
             num_ways = coin_change_ways(coins, amount)
-            
-            execution_time = (time.time() - start_time) * 1000
+            ways_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Solution")
             
@@ -619,7 +678,10 @@ def handle_coin_change():
             with col2:
                 st.metric("Number of Ways", f"{num_ways}")
             with col3:
-                st.metric("Execution Time", f"{execution_time:.5f} ms")
+                st.metric("Execution Time", f"{execution_time:.6f} ms")
+            
+            # Show iterations info for transparency
+            st.info(f"⏱️ Timing based on {iterations:,} iterations for accuracy")
             
             if min_coins != -1:
                 st.success(f"✅ Can make {amount} with {min_coins} coins")
