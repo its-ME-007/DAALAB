@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from container_runner import ContainerRunner
+from container_runner import ContainerRunner, CppContainerRunner
 from auth import auth_bp, get_user_id_from_request  # Import your authentication router
 import uvicorn
 import os
@@ -75,6 +75,11 @@ async def compiler_page():
     """Serve the compiler HTML page"""
     return FileResponse("static/compiler.html")
 
+@app.get("/cpp_compiler.html")
+async def cpp_compiler_page():
+    """Serve the C++ compiler HTML page"""
+    return FileResponse("static/cpp_compiler.html")
+
 @app.post("/api/run-code", response_model=CodeResponse)
 async def run_code(request: CodeRequest, auth_request: Request):
     """Execute Python code in a container and save runtime data"""
@@ -107,6 +112,69 @@ async def run_code(request: CodeRequest, auth_request: Request):
                     }).execute()
                     saved_to_db = True
                     print(f"Saved runtime data: {request.algorithm_name}, size: {request.input_size}, time: {runtime_ms}ms")
+                else:
+                    print("No user ID found, skipping database save")
+            except Exception as db_error:
+                print(f"Database save error: {db_error}")
+                # Don't fail the request if database save fails
+        
+        if output.startswith("Error:"):
+            return CodeResponse(
+                output="",
+                runtime=runtime,
+                success=False,
+                error=output,
+                saved_to_db=saved_to_db
+            )
+        
+        return CodeResponse(
+            output=output,
+            runtime=runtime,
+            success=True,
+            saved_to_db=saved_to_db
+        )
+        
+    except Exception as e:
+        return CodeResponse(
+            output="",
+            runtime=0.0,
+            success=False,
+            error=f"Server error: {str(e)}",
+            saved_to_db=False
+        )
+
+@app.post("/api/run-cpp", response_model=CodeResponse)
+async def run_cpp_code(request: CodeRequest, auth_request: Request):
+    """Execute C++ code in a container and save runtime data"""
+    try:
+        if not request.code.strip():
+            raise HTTPException(status_code=400, detail="Code cannot be empty")
+        
+        runner = CppContainerRunner()
+        output, runtime = runner.run_code(request.code)
+        
+        # Convert runtime to milliseconds for database storage
+        runtime_ms = runtime * 1000
+        
+        # Try to save to database if algorithm details are provided
+        saved_to_db = False
+        if request.algorithm_name and request.input_size:
+            try:
+                # Get user ID from authentication
+                user_id = get_user_id_from_request(auth_request)
+                
+                if user_id:
+                    # Save to Supabase
+                    supabase.table('algorithm_runtimes').insert({
+                        'user_id': user_id,
+                        'algorithm_name': request.algorithm_name,
+                        'input_size': request.input_size,
+                        'execution_time_ms': runtime_ms,
+                        'code_snippet': request.code[:1000],  # Limit code snippet length
+                        'output_result': output[:1000]  # Limit output length
+                    }).execute()
+                    saved_to_db = True
+                    print(f"Saved C++ runtime data: {request.algorithm_name}, size: {request.input_size}, time: {runtime_ms}ms")
                 else:
                     print("No user ID found, skipping database save")
             except Exception as db_error:

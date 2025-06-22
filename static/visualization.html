@@ -25,11 +25,14 @@
             <!-- User / Navigation controls -->
             <div class="user-controls">
                 <span id="username" class="username"></span>
-                <a href="index.html" class="btn btn-secondary">
-                    <i class="fas fa-code"></i> Code Runner
+                <a href="compiler.html" class="btn btn-secondary">
+                    <i class="fas fa-python"></i> Python Compiler
+                </a>
+                <a href="cpp_compiler.html" class="btn btn-secondary">
+                    <i class="fas fa-code"></i> C++ Compiler
                 </a>
                 <a href="http://localhost:8000/dev-ui/" class="btn btn-secondary">
-                    <i class="fas fa-tachometer-alt"></i> Agent
+                    <i class="fas fa-robot"></i> Agent
                 </a>
                 <button id="logoutButton" class="btn btn-danger">
                     <i class="fas fa-sign-out-alt"></i> Logout
@@ -155,9 +158,8 @@
     <script src="/static/visualization.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Load backend plot with authentication
         const token = localStorage.getItem('token');
-        if (!token) return; // Not logged in
-
         fetch('/api/plot.png', {
             headers: {
                 'Authorization': 'Bearer ' + token
@@ -176,5 +178,6 @@
         });
     });
     </script>
+    <script src="/static/navigation.js"></script>
 </body>
 </html> 

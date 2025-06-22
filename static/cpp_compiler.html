@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C++ Compiler | Attempy-DAA</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <!-- ╭────────────────────────────────────────── Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-code"></i> C++ Code Compiler</h1>
+                <p>Compile and execute C++ code safely in isolated containers</p>
+            </div>
+            <div class="user-controls">
+                <span id="username" class="username"></span>
+                <a href="compiler.html" class="btn btn-secondary">
+                    <i class="fas fa-python"></i> Python Compiler
+                </a>
+                <a href="visualization.html" class="btn btn-secondary">
+                    <i class="fas fa-chart-line"></i> Visualizer
+                </a>
+                <a href="http://localhost:8000/dev-ui/" class="btn btn-secondary">
+                    <i class="fas fa-robot"></i> Agent
+                </a>
+                <button id="logoutButton" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+        <main class="main-content">
+            <!-- ── Code Editor -->
+            <div class="editor-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-edit"></i> C++ Code Editor</h2>
+                    <div class="header-actions">
+                        <button id="clearBtn" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <button id="runBtn" class="btn btn-primary">
+                            <i class="fas fa-play"></i> Compile & Run
+                        </button>
+                    </div>
+                </div>
+                <div class="algorithm-details">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="algorithmName">Algorithm Name</label>
+                            <input type="text" id="algorithmName" placeholder="e.g., Bubble Sort, Quick Sort, Linear Search" />
+                        </div>
+                        <div class="form-group">
+                            <label for="inputSize">Input Size</label>
+                            <input type="number" id="inputSize" placeholder="e.g., 100, 1000, 10000" min="1" />
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-container">
+<textarea id="codeEditor" placeholder="Write your C++ code here...">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;chrono&gt;
+
+int main() {
+    std::cout << "Hello from C++!" << std::endl;
+    
+    // Simple algorithm test
+    std::vector&lt;int&gt; numbers = {1, 2, 3, 4, 5};
+    int sum = 0;
+    
+    for (int num : numbers) {
+        sum += num;
+    }
+    
+    std::cout << "Sum of numbers: " << sum << std::endl;
+    
+    return 0;
+}</textarea>
+                </div>
+            </div>
+            <!-- ── Output Panel -->
+            <div class="output-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-terminal"></i> Output</h2>
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Ready</span>
+                    </div>
+                </div>
+                <div class="output-container">
+                    <div id="output" class="output-content">
+                        <div class="welcome-message">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Write your C++ code and click "Compile & Run" to execute it.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <!-- ╭───────────────────────────────────────── Info Cards -->
+        <div class="info-section">
+            <div class="info-card">
+                <h3><i class="fas fa-lightbulb"></i> C++ Tips</h3>
+                <ul>
+                    <li>Always include necessary headers (iostream, vector, etc.)</li>
+                    <li>Use <code>std::cout</code> for output</li>
+                    <li>Code is compiled with GCC and C++17 standard</li>
+                    <li>Execution time is measured and displayed</li>
+                    <li>Make sure your code has a <code>main()</code> function</li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3><i class="fas fa-code"></i> C++ Example Code</h3>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+int main() {
+    // Simple calculation
+    int x = 10, y = 20;
+    std::cout << "Sum: " << x + y << std::endl;
+    
+    // Vector operations
+    std::vector&lt;int&gt; numbers = {1, 2, 3, 4, 5};
+    int sum = 0;
+    for (int num : numbers) {
+        sum += num;
+    }
+    std::cout << "Sum of vector: " << sum << std::endl;
+    
+    return 0;
+}</code></pre>
+            </div>
+        </div>
+    </div>
+    <!-- ╭──────────────────────────── Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Compiling and running C++ code...</p>
+        </div>
+    </div>
+    <!-- C++ specific script -->
+    <script>
+        // C++ Code Runner Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeEditor = document.getElementById('codeEditor');
+            const runBtn = document.getElementById('runBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const output = document.getElementById('output');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const algorithmName = document.getElementById('algorithmName');
+            const inputSize = document.getElementById('inputSize');
+
+            // Run C++ code
+            async function runCppCode() {
+                const code = codeEditor.value.trim();
+                if (!code) {
+                    showOutput('Please enter some C++ code to run.', 'error');
+                    return;
+                }
+
+                showLoading(true);
+                updateStatus('Compiling and running...', 'running');
+
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch('/api/run-cpp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            code: code,
+                            algorithm_name: algorithmName.value || null,
+                            input_size: inputSize.value ? parseInt(inputSize.value) : null
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const runtimeMs = (result.runtime * 1000).toFixed(2);
+                        const outputText = `Output:\n${result.output}\n\nExecution time: ${runtimeMs} ms`;
+                        showOutput(outputText, 'success');
+                        updateStatus('Completed', 'success');
+                    } else {
+                        showOutput(`Error: ${result.error}`, 'error');
+                        updateStatus('Failed', 'error');
+                    }
+                } catch (error) {
+                    showOutput(`Network error: ${error.message}`, 'error');
+                    updateStatus('Failed', 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            // Clear code editor
+            function clearCode() {
+                codeEditor.value = '';
+                showOutput('Code editor cleared.', 'info');
+            }
+
+            // Show output with formatting
+            function showOutput(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const outputDiv = document.createElement('div');
+                outputDiv.className = `output-message ${type}`;
+                outputDiv.innerHTML = `
+                    <div class="output-header">
+                        <span class="output-type">${type.toUpperCase()}</span>
+                        <span class="output-time">${timestamp}</span>
+                    </div>
+                    <pre class="output-text">${message}</pre>
+                `;
+                output.appendChild(outputDiv);
+                output.scrollTop = output.scrollHeight;
+            }
+
+            // Update status indicator
+            function updateStatus(text, status) {
+                const statusText = statusIndicator.querySelector('.status-text');
+                const statusDot = statusIndicator.querySelector('.status-dot');
+                
+                statusText.textContent = text;
+                statusIndicator.className = `status-indicator ${status}`;
+            }
+
+            // Show/hide loading overlay
+            function showLoading(show) {
+                loadingOverlay.style.display = show ? 'flex' : 'none';
+            }
+
+            // Event listeners
+            runBtn.addEventListener('click', runCppCode);
+            clearBtn.addEventListener('click', clearCode);
+
+            // Keyboard shortcuts
+            codeEditor.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    runCppCode();
+                }
+            });
+        });
+    </script>
+    <script src="/static/navigation.js"></script>
+</body>
+</html> 
