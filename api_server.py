@@ -213,16 +213,15 @@ async def health_check():
 
 @app.get("/api/runtime-data")
 async def get_runtime_data(auth_request: Request):
-    """Get algorithm runtime data for the authenticated user"""
+    """Get all algorithm runtime data from the database"""
     try:
         user_id = get_user_id_from_request(auth_request)
         if not user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        # Get runtime data from Supabase
+        # Get ALL runtime data from Supabase (not just user-specific)
         response = supabase.table('algorithm_runtimes')\
             .select('*')\
-            .eq('user_id', user_id)\
             .order('created_at', desc=True)\
             .execute()
         

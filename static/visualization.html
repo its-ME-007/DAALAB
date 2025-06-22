@@ -10,8 +10,91 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     
-    <!-- Chart.js for graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Visualization Layout */
+        .chart-section {
+            margin-bottom: 2rem;
+        }
+        
+        .entries-section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .entries-container {
+            padding: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .entries-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .entry-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .entry-algorithm {
+            color: #3182ce;
+            font-weight: 600;
+        }
+        
+        .entry-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #4a5568;
+        }
+        
+        .entry-detail {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .entry-detail-label {
+            font-weight: 500;
+            color: #718096;
+        }
+        
+        .entry-detail-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .entry-time {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+        
+        .no-entries {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 2rem 1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -42,105 +125,41 @@
 
         <!-- ╭─────────────────────────────────────── Main Content -->
         <main class="main-content">
-            <!-- ── Performance Overview -->
-            <div class="overview-section">
+            <!-- ── Algorithm Comparison Chart -->
+            <div class="chart-section">
                 <div class="section-header">
-                    <h2><i class="fas fa-tachometer-alt"></i> Performance Overview</h2>
+                    <h2><i class="fas fa-chart-bar"></i> Algorithm Performance Visualization</h2>
                     <div class="header-actions">
                         <button id="refreshBtn" class="btn btn-primary">
-                            <i class="fas fa-sync-alt"></i> Refresh Data
+                            <i class="fas fa-sync-alt"></i> Refresh Plot
                         </button>
                     </div>
                 </div>
                 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-code"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 id="totalAlgorithms">0</h3>
-                            <p>Algorithms Tested</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-play"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 id="totalExecutions">0</h3>
-                            <p>Total Executions</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 id="avgRuntime">0ms</h3>
-                            <p>Average Runtime</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-calendar"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 id="lastExecution">-</h3>
-                            <p>Last Execution</p>
-                        </div>
+                <!-- Backend-generated plot -->
+                <div class="plot-container">
+                    <img id="backendPlot" alt="Algorithm Performance Plot" style="max-width:100%; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div class="plot-info">
+                        <p><i class="fas fa-info-circle"></i> This plot shows algorithm performance data from all users in the database.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- ── Algorithm Comparison Chart -->
-            <div class="chart-section">
+            <!-- ── Database Entries Display -->
+            <div class="entries-section">
                 <div class="section-header">
-                    <h2><i class="fas fa-chart-bar"></i> Runtime vs Input Size</h2>
-                    <div class="chart-controls">
-                        <select id="algorithmFilter" class="chart-select">
-                            <option value="">All Algorithms</option>
-                        </select>
-                        <select id="chartType" class="chart-select">
-                            <option value="line">Line Chart</option>
-                            <option value="bar">Bar Chart</option>
-                            <option value="scatter">Scatter Plot</option>
-                        </select>
+                    <h2><i class="fas fa-database"></i> Database Entries</h2>
+                    <div class="header-actions">
+                        <button id="refreshEntriesBtn" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
                     </div>
                 </div>
                 
-                <div class="chart-container">
-                    <canvas id="performanceChart"></canvas>
-                </div>
-                <!-- Backend-generated plot using JWT auth -->
-                <div style="margin-top:32px;text-align:center;">
-                    <img id="backendPlot" alt="Algorithm Runtime Plot" style="max-width:100%;border-radius:12px;">
-                    <div style="color:#888;font-size:0.9em;margin-top:8px;">(Backend-generated plot, user-specific)</div>
-                </div>
-            </div>
-
-            <!-- ── Algorithm Performance Table -->
-            <div class="table-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-table"></i> Performance Data</h2>
-                </div>
-                
-                <div class="table-container">
-                    <table id="performanceTable">
-                        <thead>
-                            <tr>
-                                <th>Algorithm</th>
-                                <th>Input Size</th>
-                                <th>Runtime (ms)</th>
-                                <th>Executions</th>
-                                <th>Avg Runtime</th>
-                                <th>Last Run</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <!-- Data will be populated by JavaScript -->
-                        </tbody>
-                    </table>
+                <div class="entries-container">
+                    <div id="entriesList" class="entries-list">
+                        <!-- Database entries will be populated here -->
+                    </div>
                 </div>
             </div>
         </main>
