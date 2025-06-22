@@ -85,7 +85,7 @@ def handle_sorting():
         st.write(f"Array size: {len(arr)}")
 
         if st.button("Sort Array", type="primary"):
-            start_time = time.time()
+            start_time = time.perf_counter()
             
             if algorithm == "heap":
                 sorted_arr = heap_sort(arr.copy())
@@ -96,7 +96,7 @@ def handle_sorting():
             else:  # insertion
                 sorted_arr = insertion_sort(arr.copy())
             
-            execution_time = (time.time() - start_time) * 1000
+            execution_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Results")
             col1, col2, col3 = st.columns(3)
@@ -151,7 +151,7 @@ def handle_searching():
         target = st.number_input("Enter target number to search:", value=arr[0] if arr else 0)
 
         if st.button("Search", type="primary"):
-            start_time = time.time()
+            start_time = time.perf_counter()
             
             if algorithm == "linear":
                 result = linear_search(arr, target)
@@ -160,7 +160,7 @@ def handle_searching():
             else:  # interpolation
                 result = interpolation_search(arr, target)
             
-            execution_time = (time.time() - start_time) * 1000
+            execution_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Results")
             col1, col2, col3 = st.columns(3)
@@ -171,8 +171,8 @@ def handle_searching():
             with col3:
                 st.metric("Execution Time", f"{execution_time:.5f} ms")
             
-            if result.get("found_index") is not None:
-                st.success(f"✅ Found {target} at index {result['found_index']}")
+            if result != -1:
+                st.success(f"✅ Found {target} at index {result}")
             else:
                 st.warning(f"❌ {target} not found in the array")
 
@@ -392,6 +392,7 @@ def handle_dijkstra():
     max_weight = st.slider("Maximum edge weight:", 10, 200, 100)
     source = st.selectbox("Source vertex:", range(num_vertices))
     
+    from greedy.dijkstras import generate_sample_graph
     graph = generate_sample_graph(num_vertices, density, max_weight, directed=True)
     
     st.write("**Graph (Adjacency Matrix):**")
@@ -472,7 +473,7 @@ def handle_knapsack_01():
         st.write(f"**Knapsack Capacity:** {capacity}")
         
         if st.button("Solve Knapsack", type="primary"):
-            start_time = time.time()
+            start_time = time.perf_counter()
             
             # Get maximum value
             max_value_result = knapsack_01_dp(weights, values, capacity)
@@ -480,7 +481,7 @@ def handle_knapsack_01():
             # Get selected items
             max_value_with_items, selected_indices = knapsack_01_get_items(weights, values, capacity)
             
-            execution_time = (time.time() - start_time) * 1000
+            execution_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Solution")
             
@@ -539,7 +540,7 @@ def handle_subset_sum():
         st.write(f"**Target Sum:** {target}")
         
         if st.button("Find Subset", type="primary"):
-            start_time = time.time()
+            start_time = time.perf_counter()
             
             # Check if subset exists
             subset_exists = subset_sum_dp(numbers, target)
@@ -547,7 +548,7 @@ def handle_subset_sum():
             # Get the actual subset if it exists
             exists, subset = subset_sum_get_subset(numbers, target)
             
-            execution_time = (time.time() - start_time) * 1000
+            execution_time = (time.perf_counter() - start_time) * 1000
             
             st.subheader("Results")
             

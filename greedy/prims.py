@@ -12,7 +12,7 @@ def prims_mst(graph, start_vertex=0):
     Returns:
         Dictionary containing MST details
     """
-    start_time = time.time()
+    start_time = time.perf_counter()
     
     if not graph or len(graph) == 0:
         return {
@@ -69,7 +69,7 @@ def prims_mst(graph, start_vertex=0):
                 if not visited[w] and graph[u][w] > 0:
                     heapq.heappush(min_heap, (graph[u][w], u, w))
     
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_time = (time.perf_counter() - start_time) * 1000  # Convert to milliseconds
     
     return {
         "graph": graph,

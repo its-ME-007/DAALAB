@@ -12,7 +12,7 @@ def dijkstras_shortest_path(graph, source):
     Returns:
         Dictionary containing shortest path details
     """
-    start_time = time.time()
+    start_time = time.perf_counter()
     
     if not graph or len(graph) == 0:
         return {
@@ -67,7 +67,7 @@ def dijkstras_shortest_path(graph, source):
                 current = previous[current]
             paths[target] = list(reversed(path))
     
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_time = (time.perf_counter() - start_time) * 1000  # Convert to milliseconds
     
     return {
         "graph": graph,

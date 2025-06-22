@@ -39,7 +39,7 @@ def kruskals_mst(graph):
     Returns:
         Dictionary containing MST details
     """
-    start_time = time.time()
+    start_time = time.perf_counter()
     
     if not graph or len(graph) == 0:
         return {
@@ -78,7 +78,7 @@ def kruskals_mst(graph):
             if len(mst_edges) == n - 1:
                 break
     
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_time = (time.perf_counter() - start_time) * 1000  # Convert to milliseconds
     
     return {
         "graph": graph,

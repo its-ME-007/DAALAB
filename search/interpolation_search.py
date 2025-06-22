@@ -1,28 +1,25 @@
 def interpolation_search(arr: list, target: int) -> int:
     """
     Perform interpolation search on the given array.
-    The array will be sorted before searching.
+    The array should be sorted before calling this function.
     Returns the index of the target if found, -1 otherwise.
     """
-    # Sort the array first
-    sorted_arr = sorted(arr)
-    
     low = 0
-    high = len(sorted_arr) - 1
+    high = len(arr) - 1
     
-    while low <= high and target >= sorted_arr[low] and target <= sorted_arr[high]:
+    while low <= high and target >= arr[low] and target <= arr[high]:
         if low == high:
-            if sorted_arr[low] == target:
+            if arr[low] == target:
                 return low
             return -1
             
         # Interpolation formula
-        pos = low + int(((float(high - low) / (sorted_arr[high] - sorted_arr[low])) * (target - sorted_arr[low])))
+        pos = low + int(((float(high - low) / (arr[high] - arr[low])) * (target - arr[low])))
         
-        if sorted_arr[pos] == target:
+        if arr[pos] == target:
             return pos
             
-        if sorted_arr[pos] < target:
+        if arr[pos] < target:
             low = pos + 1
         else:
             high = pos - 1

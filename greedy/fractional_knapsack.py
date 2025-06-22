@@ -12,7 +12,7 @@ def fractional_knapsack(weights, values, capacity):
     Returns:
         Dictionary containing solution details
     """
-    start_time = time.time()
+    start_time = time.perf_counter()
     
     if not weights or not values or len(weights) != len(values):
         return {
@@ -68,7 +68,7 @@ def fractional_knapsack(weights, values, capacity):
             'value_taken': taken_value
         })
     
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_time = (time.perf_counter() - start_time) * 1000  # Convert to milliseconds
     
     return {
         "weights": weights,

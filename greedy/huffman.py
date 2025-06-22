@@ -85,7 +85,7 @@ def decode_text(encoded_text, root):
 
 def huffman_compression(text):
     """Complete Huffman compression process"""
-    start_time = time.time()
+    start_time = time.perf_counter()
     
     # Build Huffman tree
     root = build_huffman_tree(text)
@@ -96,7 +96,7 @@ def huffman_compression(text):
     # Encode text
     encoded = encode_text(text, codes)
     
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_time = (time.perf_counter() - start_time) * 1000  # Convert to milliseconds
     
     return {
         "original_text": text,
@@ -112,11 +112,11 @@ def huffman_compression(text):
 
 def huffman_decompression(encoded_text, root):
     """Complete Huffman decompression process"""
-    start_time = time.time()
+    start_time = time.perf_counter()
     
     decoded_text = decode_text(encoded_text, root)
     
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_time = (time.perf_counter() - start_time) * 1000  # Convert to milliseconds
     
     return {
         "encoded_text": encoded_text,
