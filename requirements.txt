@@ -2,16 +2,30 @@
 # Python built-in modules used: sys, json, random
 
 # Core dependencies for Algorithm Visualizer
-streamlit==1.32.0
-fastapi==0.110.0
-uvicorn==0.27.1
-pydantic==2.6.3
-pandas==2.2.1
-numpy==1.24.3
-matplotlib==3.7.1
-plotly==5.15.0
+streamlit
+fastapi
+uvicorn
+pydantic
+# pandas==2.2.1
+# numpy==1.24.3
+matplotlib==3.8.2
+plotly
+
+# Authentication & JWT (ES256 support)
+PyJWT[crypto]>=2.8.0
+
+# LangChain & AI Agent Dependencies
+langchain>=0.1.0
+langchain-groq>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+langchain-classic  # For legacy AgentExecutor support
+
+# HTTP client for microservice communication
+httpx
+requests
 
 # Code execution dependencies
-docker==7.0.0
-python-dotenv==1.0.0
-supabase==2.0.0
+docker
+python-dotenv
+supabase

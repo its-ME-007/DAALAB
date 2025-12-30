@@ -37,6 +37,12 @@
                 <div class="section-header">
                     <h2><i class="fas fa-edit"></i> C++ Code Editor</h2>
                     <div class="header-actions">
+                        <button id="loadBtn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Load
+                        </button>
+                        <button id="saveBtn" class="btn btn-secondary">
+                            <i class="fas fa-save"></i> Save
+                        </button>
                         <button id="clearBtn" class="btn btn-secondary">
                             <i class="fas fa-trash"></i> Clear
                         </button>
@@ -244,6 +250,86 @@ int main() {
                     runCppCode();
                 }
             });
+        });
+    </script>
+    <script>
+        // Add save/load functionality for C++
+        document.addEventListener('DOMContentLoaded', () => {
+            const saveBtn = document.getElementById('saveBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const codeEditor = document.getElementById('codeEditor');
+            
+            // Save code to database
+            async function saveCode() {
+                const code = codeEditor.value.trim();
+                if (!code) {
+                    alert('No code to save!');
+                    return;
+                }
+                
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    alert('Please login first!');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('http://localhost:8000/api/code/cpp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ content: code })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('✅ Code saved successfully!');
+                    } else {
+                        alert('❌ Failed to save: ' + data.message);
+                    }
+                } catch (error) {
+                    alert('❌ Network error: ' + error.message);
+                }
+            }
+            
+            // Load code from database
+            async function loadCode() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    alert('Please login first!');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('http://localhost:8000/api/code/cpp', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success && data.file) {
+                        codeEditor.value = data.file.code_content;
+                        alert('✅ Code loaded successfully!');
+                    } else {
+                        alert('ℹ️ No saved code found.');
+                    }
+                } catch (error) {
+                    alert('❌ Network error: ' + error.message);
+                }
+            }
+            
+            // Auto-load on page load
+            loadCode();
+            
+            // Event listeners
+            if (saveBtn) saveBtn.addEventListener('click', saveCode);
+            if (loadBtn) loadBtn.addEventListener('click', loadCode);
         });
     </script>
     <script src="/static/navigation.js"></script>

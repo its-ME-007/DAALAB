@@ -1,4 +1,7 @@
 __pycache__/
-.env 
+.venv/
 code.py
+user.cpp
+temp_files/
 .agent
+.env

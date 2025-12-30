@@ -5,23 +5,47 @@ import os
 from dotenv import load_dotenv
 import json
 import jwt
+from jwt import PyJWKClient
+from jwt.exceptions import InvalidTokenError, DecodeError
 
 load_dotenv()
 
 auth_bp = APIRouter()
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
+# Initialize PyJWKClient for ES256 JWT verification
+jwks_url = os.getenv("SUPABASE_JWKS_URL", "https://rnpllovzmcfgjsfrkgxj.supabase.co/auth/v1/.well-known/jwks.json")
+jwks_client = PyJWKClient(jwks_url)
+
 def get_user_id_from_request(request: Request):
+    """
+    Extract and verify user ID from JWT token in Authorization header.
+    Uses ES256 algorithm with JWKS public key verification.
+    """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return None
+    
     token = auth_header.split(' ')[1]
     try:
-        # Supabase JWTs are signed with RS256, but for user_id extraction, you can decode without verification
-        decoded = jwt.decode(token, options={"verify_signature": False})
+        # Get the signing key from JWKS endpoint
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        
+        # Verify and decode the JWT token with ES256 algorithm
+        decoded = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["ES256"],  # Supabase now uses ES256, not RS256
+            audience="authenticated",  # Supabase default audience
+            options={"verify_aud": True, "verify_exp": True}
+        )
+        
         return decoded.get('sub')  # 'sub' is the user id in Supabase JWTs
+    except (InvalidTokenError, DecodeError) as e:
+        print(f"JWT verification failed: {e}")
+        return None
     except Exception as e:
-        print("JWT decode error:", e)
+        print(f"JWT decode error: {e}")
         return None
 
 @auth_bp.post('/signup')

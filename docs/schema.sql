@@ -1,5 +1,16 @@
 
-ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret';
+-- ====================================================================
+-- 🔐  AUTHENTICATION CONFIGURATION
+-- ====================================================================
+-- Note: Supabase now uses ES256 (Elliptic Curve) JWT signing algorithm.
+-- JWT verification is handled by Supabase's API layer using public key cryptography.
+-- No need to set a JWT secret in the database for ES256.
+-- The database RLS policies use auth.uid() which extracts the user ID from verified JWTs.
+-- 
+-- JWKS Endpoint: https://rnpllovzmcfgjsfrkgxj.supabase.co/auth/v1/.well-known/jwks.json
+-- Key ID: c2d594d8-319a-4d63-9b06-7719e03e9f5a
+-- Algorithm: ES256 (not RS256 or HS256)
+-- ====================================================================
 
 CREATE TABLE IF NOT EXISTS algorithm_runtimes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
