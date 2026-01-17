@@ -189,52 +189,106 @@
   
     /* ========== EDITOR & RUNNER ========== */
   
-    async function runCode() {
-      if (isRunning) return;
-      const code = codeEditor.value.trim();
-      if (!code) return showError('Please enter some code to run!');
+async function runCode() {
+  if (isRunning) return;
+  const code = codeEditor.value.trim();
+  if (!code) return showError('Please enter some code to run!');
 
-      // Get algorithm details
-      const algorithmName = document.getElementById('algorithmName')?.value?.trim();
-      const inputSize = document.getElementById('inputSize')?.value;
+  // Get algorithm details
+  const algorithmName = document.getElementById('algorithmName')?.value?.trim();
+  const inputSizeValue = document.getElementById('inputSize')?.value?.trim();
 
-      setRunning(true);
-      showLoading(true);
+  setRunning(true);
+  showLoading(true);
 
-      try {
-        const requestBody = {
-          code: code
-        };
+  try {
+    const requestBody = {
+      code: code
+    };
 
-        // Add algorithm details if provided
-        if (algorithmName) {
-          requestBody.algorithm_name = algorithmName;
-        }
-        if (inputSize) {
-          requestBody.input_size = parseInt(inputSize);
-        }
-
-        const res = await fetch(API_ENDPOINTS.runCode, {
-          method : 'POST',
-          headers: {
-            'Content-Type' : 'application/json',
-            ...(getToken() && { 'Authorization': `Bearer ${getToken()}` })
-          },
-          body   : JSON.stringify(requestBody)
-        });
-
-        const result = await res.json();
-        res.ok ? displayResult(result)
-               : showError(result.detail || 'Failed to run code');
-      } catch (err) {
-        console.error(err);
-        showError('Network error: Unable to connect to the server');
-      } finally {
-        setRunning(false);
-        showLoading(false);
+    // Add algorithm details ONLY if BOTH fields are filled and valid
+    if (algorithmName && inputSizeValue) {
+      const inputSizeNum = parseInt(inputSizeValue, 10);
+      if (!isNaN(inputSizeNum) && inputSizeNum > 0) {
+        requestBody.algorithm_name = algorithmName;
+        requestBody.input_size = inputSizeNum;
+        console.log('📊 Sending algorithm data:', { algorithm_name: algorithmName, input_size: inputSizeNum });
+      } else {
+        console.warn('⚠️ Invalid input size:', inputSizeValue);
       }
+    } else {
+      console.log('ℹ️ Running without algorithm tracking (fields not filled)');
     }
-  
+
+    console.log('🚀 Request body:', requestBody);
+
+    const res = await fetch(API_ENDPOINTS.runCode, {
+      method : 'POST',
+      headers: {
+        'Content-Type' : 'application/json',
+        ...(getToken() && { 'Authorization': `Bearer ${getToken()}` })
+      },
+      body   : JSON.stringify(requestBody)
+    });
+
+    const result = await res.json();
+    console.log('📥 Response:', result);
+    
+    if (res.ok) {
+      displayResult(result);
+      
+      // ✨ AUTO-ANALYZE COMPLEXITY AFTER SUCCESSFUL RUN
+      console.log('🧠 Auto-analyzing complexity...');
+      await autoAnalyzeComplexity(code, algorithmName);
+    } else {
+      showError(result.detail || 'Failed to run code');
+    }
+  } catch (err) {
+    console.error('❌ Error:', err);
+    showError('Network error: Unable to connect to the server');
+  } finally {
+    setRunning(false);
+    showLoading(false);
+  }
+}
+
+// ✨ NEW: Auto-analyze complexity in background
+async function autoAnalyzeComplexity(code, algorithmName) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/analyze-complexity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getToken() && { 'Authorization': `Bearer ${getToken()}` })
+      },
+      body: JSON.stringify({
+        code: code,
+        language: 'python'
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Store complexity info for visualization page
+      localStorage.setItem('lastComplexityAnalysis', JSON.stringify({
+        time_class: result.time_complexity_class,
+        space_class: result.space_complexity_class,
+        algorithm_name: algorithmName || result.algorithm_name || 'Unknown Algorithm',
+        time_complexity: result.time_complexity,
+        space_complexity: result.space_complexity,
+        explanation: result.explanation
+      }));
+      
+      console.log('✅ Complexity auto-analyzed and saved!');
+    } else {
+      console.warn('⚠️ Auto-analysis failed:', result.error);
+    }
+  } catch (error) {
+    console.warn('⚠️ Auto-analysis error:', error);
+    // Don't show error to user - this is background operation
+  }
+}
     async function checkApiHealth() {
       try {
         const res = await fetch(API_ENDPOINTS.health);
@@ -247,23 +301,24 @@
   
     /* ---------- UI helpers ---------- */
   
-    function displayResult(res) {
-      if (res.success) {
-        const content = res.output || 'No output generated';
-        const timeStr = `Execution time: ${res.runtime.toFixed(3)} s`;
-        const dbStatus = res.saved_to_db ? 
-          '<div class="db-save-success"><i class="fas fa-database"></i> Runtime data saved to database</div>' : '';
+      function displayResult(res) {
+        if (res.success) {
+          const content = res.output || 'No output generated';
+          const timeStr = `Execution time: ${res.runtime.toFixed(3)} s`;
+          const dbStatus = res.saved_to_db ? 
+            '<div class="db-save-success"><i class="fas fa-database"></i> ✅ Runtime data saved to database! Check the Visualizer.</div>' : 
+            '<div class="db-save-info"><i class="fas fa-info-circle"></i> Fill in Algorithm Name and Input Size to track performance.</div>';
 
-        output.innerHTML =
-          `<div class="output-success">${escapeHtml(content)}</div>
-           <div class="runtime-info">${timeStr}</div>
-           ${dbStatus}`;
+          output.innerHTML =
+            `<div class="output-success">${escapeHtml(content)}</div>
+            <div class="runtime-info">${timeStr}</div>
+            ${dbStatus}`;
 
-        setStatus('ready', 'Completed');
-      } else {
-        showError(res.error || 'Unknown error');
+          setStatus('ready', 'Completed');
+        } else {
+          showError(res.error || 'Unknown error');
+        }
       }
-    }
   
     function showError(msg) {
       output.innerHTML =

@@ -5,36 +5,41 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from container_runner import ContainerRunner, CppContainerRunner
-from auth import auth_bp, get_user_id_from_request  # Import your authentication router
-from code_assist import AIServiceClient, check_ai_service  # Import AI service client
+from auth import auth_bp, get_user_id_from_request
+from code_assist import AIServiceClient, check_ai_service  # ✅ Already imported
 import uvicorn
 import os
 from supabase import create_client
 from dotenv import load_dotenv
 from visualize import register_visualization_routes
 import httpx
+from complexity_analyzer import ComplexityAnalyzer
 
 load_dotenv()
 
 app = FastAPI(title="Python Code Runner API", version="1.0.0")
 
 # Initialize Supabase client
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
-# Add CORS middleware to allow frontend requests
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve static files (HTML, CSS, JS)
+# Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Register authentication routes
 app.include_router(auth_bp, prefix="/api/auth")
+
+# ====================================================================
+# REQUEST/RESPONSE MODELS
+# ====================================================================
 
 class CodeRequest(BaseModel):
     code: str
@@ -70,16 +75,67 @@ class CodeFileResponse(BaseModel):
     file: Optional[Dict[str, Any]] = None
     message: str
 
+class ComplexityAnalysisRequest(BaseModel):
+    code: str
+    language: str = "python"
+
+class ComplexityAnalysisResponse(BaseModel):
+    success: bool
+    time_complexity: Optional[str] = None
+    time_complexity_class: Optional[str] = None
+    space_complexity: Optional[str] = None
+    space_complexity_class: Optional[str] = None
+    explanation: Optional[str] = None
+    best_case: Optional[str] = None
+    average_case: Optional[str] = None
+    worst_case: Optional[str] = None
+    algorithm_name: Optional[str] = None
+    error: Optional[str] = None
+
+# ====================================================================
+# HTML PAGE ROUTES
+# ====================================================================
+
+@app.get("/")
+async def read_root():
+    return FileResponse("static/index.html")
+
+@app.get("/index.html")
+async def index_page():
+    return FileResponse("static/index.html")
+
+@app.get("/login.html")
+async def login_page():
+    return FileResponse("static/login.html")
+
+@app.get("/signup.html")
+async def signup_page():
+    return FileResponse("static/signup.html")
+
+@app.get("/visualization.html")
+async def visualization_page():
+    return FileResponse("static/visualization.html")
+
+@app.get("/compiler.html")
+async def compiler_page():
+    return FileResponse("static/compiler.html")
+
+@app.get("/cpp_compiler.html")
+async def cpp_compiler_page():
+    return FileResponse("static/cpp_compiler.html")
+
+# ====================================================================
+# CODE FILE MANAGEMENT
+# ====================================================================
+
 @app.post("/api/submit-code")
 async def submit_code_to_ai(auth_request: Request):
     """Read user's code files from database and send to AI service."""
     try:
-        # Get authenticated user
         user_id = get_user_id_from_request(auth_request)
         if not user_id:
             return {"success": False, "message": "Authentication required"}
         
-        # Get user's files from database
         result = supabase.table('user_code_files')\
             .select('*')\
             .eq('user_id', user_id)\
@@ -88,7 +144,6 @@ async def submit_code_to_ai(auth_request: Request):
         if not result.data:
             return {"success": False, "message": "No code files found"}
         
-        # Upload each file to AI service using the new endpoint format
         async with httpx.AsyncClient(timeout=30.0) as client:
             for file_record in result.data:
                 upload_data = {
@@ -110,16 +165,13 @@ async def submit_code_to_ai(auth_request: Request):
 async def upsert_code_file(auth_request: Request, file_type: str, file_data: CodeFileUpsert):
     """Save or update user's code file (python or cpp)."""
     try:
-        # Validate file type
         if file_type not in ['python', 'cpp']:
-            return CodeFileResponse(success=False, message="Invalid file type. Use 'python' or 'cpp'")
+            return CodeFileResponse(success=False, message="Invalid file type")
         
-        # Get authenticated user
         user_id = get_user_id_from_request(auth_request)
         if not user_id:
             return CodeFileResponse(success=False, message="Authentication required")
         
-        # Upsert to database with conflict resolution on (user_id, file_type)
         result = supabase.table('user_code_files').upsert(
             {
                 'user_id': user_id,
@@ -144,16 +196,13 @@ async def upsert_code_file(auth_request: Request, file_type: str, file_data: Cod
 async def get_code_file(auth_request: Request, file_type: str):
     """Get user's specific code file."""
     try:
-        # Validate file type
         if file_type not in ['python', 'cpp']:
-            return CodeFileResponse(success=False, message="Invalid file type. Use 'python' or 'cpp'")
+            return CodeFileResponse(success=False, message="Invalid file type")
         
-        # Get authenticated user
         user_id = get_user_id_from_request(auth_request)
         if not user_id:
             return CodeFileResponse(success=False, message="Authentication required")
         
-        # Get file from database
         result = supabase.table('user_code_files')\
             .select('*')\
             .eq('user_id', user_id)\
@@ -170,17 +219,20 @@ async def get_code_file(auth_request: Request, file_type: str):
             return CodeFileResponse(success=False, message=f"No {file_type} file found")
     except Exception as e:
         return CodeFileResponse(success=False, message=f"Error: {str(e)}")
+    
+@app.get("/agent.html")
+async def agent_page():
+    """Serve the AI agent HTML page"""
+    return FileResponse("static/agent.html")
 
 @app.get("/api/code")
 async def get_all_code_files(auth_request: Request):
     """Get all user's code files."""
     try:
-        # Get authenticated user
         user_id = get_user_id_from_request(auth_request)
         if not user_id:
             return {"success": False, "message": "Authentication required", "files": []}
         
-        # Get all files from database
         result = supabase.table('user_code_files')\
             .select('*')\
             .eq('user_id', user_id)\
@@ -194,40 +246,9 @@ async def get_all_code_files(auth_request: Request):
     except Exception as e:
         return {"success": False, "message": f"Error: {str(e)}", "files": []}
 
-@app.get("/")
-async def read_root():
-    """Serve the main HTML page"""
-    return FileResponse("static/index.html")
-
-@app.get("/index.html")
-async def index_page():
-    """Serve the main HTML page (alternative route)"""
-    return FileResponse("static/index.html")
-
-@app.get("/login.html")
-async def login_page():
-    """Serve the login HTML page"""
-    return FileResponse("static/login.html")
-
-@app.get("/signup.html")
-async def signup_page():
-    """Serve the signup HTML page"""
-    return FileResponse("static/signup.html")
-
-@app.get("/visualization.html")
-async def visualization_page():
-    """Serve the visualization HTML page"""
-    return FileResponse("static/visualization.html")
-
-@app.get("/compiler.html")
-async def compiler_page():
-    """Serve the compiler HTML page"""
-    return FileResponse("static/compiler.html")
-
-@app.get("/cpp_compiler.html")
-async def cpp_compiler_page():
-    """Serve the C++ compiler HTML page"""
-    return FileResponse("static/cpp_compiler.html")
+# ====================================================================
+# CODE EXECUTION ENDPOINTS
+# ====================================================================
 
 @app.post("/api/run-code", response_model=CodeResponse)
 async def run_code(auth_request: Request, request: CodeRequest):
@@ -238,34 +259,25 @@ async def run_code(auth_request: Request, request: CodeRequest):
         
         runner = ContainerRunner()
         output, runtime = runner.run_code(request.code)
-        
-        # Convert runtime to milliseconds for database storage
         runtime_ms = runtime * 1000
         
-        # Try to save to database if algorithm details are provided
         saved_to_db = False
         if request.algorithm_name and request.input_size:
             try:
-                # Get user ID from authentication
                 user_id = get_user_id_from_request(auth_request)
                 
                 if user_id:
-                    # Save to Supabase
                     supabase.table('algorithm_runtimes').insert({
                         'user_id': user_id,
                         'algorithm_name': request.algorithm_name,
                         'input_size': request.input_size,
                         'execution_time_ms': runtime_ms,
-                        'code_snippet': request.code[:1000],  # Limit code snippet length
-                        'output_result': output[:1000]  # Limit output length
+                        'code_snippet': request.code[:1000],
+                        'output_result': output[:1000]
                     }).execute()
                     saved_to_db = True
-                    print(f"Saved runtime data: {request.algorithm_name}, size: {request.input_size}, time: {runtime_ms}ms")
-                else:
-                    print("No user ID found, skipping database save")
             except Exception as db_error:
                 print(f"Database save error: {db_error}")
-                # Don't fail the request if database save fails
         
         if output.startswith("Error:"):
             return CodeResponse(
@@ -301,34 +313,25 @@ async def run_cpp_code(auth_request: Request, request: CodeRequest):
         
         runner = CppContainerRunner()
         output, runtime = runner.run_code(request.code)
-        
-        # Convert runtime to milliseconds for database storage
         runtime_ms = runtime * 1000
         
-        # Try to save to database if algorithm details are provided
         saved_to_db = False
         if request.algorithm_name and request.input_size:
             try:
-                # Get user ID from authentication
                 user_id = get_user_id_from_request(auth_request)
                 
                 if user_id:
-                    # Save to Supabase
                     supabase.table('algorithm_runtimes').insert({
                         'user_id': user_id,
                         'algorithm_name': request.algorithm_name,
                         'input_size': request.input_size,
                         'execution_time_ms': runtime_ms,
-                        'code_snippet': request.code[:1000],  # Limit code snippet length
-                        'output_result': output[:1000]  # Limit output length
+                        'code_snippet': request.code[:1000],
+                        'output_result': output[:1000]
                     }).execute()
                     saved_to_db = True
-                    print(f"Saved C++ runtime data: {request.algorithm_name}, size: {request.input_size}, time: {runtime_ms}ms")
-                else:
-                    print("No user ID found, skipping database save")
             except Exception as db_error:
                 print(f"Database save error: {db_error}")
-                # Don't fail the request if database save fails
         
         if output.startswith("Error:"):
             return CodeResponse(
@@ -355,41 +358,22 @@ async def run_cpp_code(auth_request: Request, request: CodeRequest):
             saved_to_db=False
         )
 
-@app.get("/api/health")
-async def health_check():
-    """Health check endpoint"""
-    ai_service_healthy = await check_ai_service()
-    return {
-        "status": "healthy",
-        "service": "Python Code Runner API",
-        "ai_service": "healthy" if ai_service_healthy else "unavailable"
-    }
-
 # ====================================================================
-# 🤖  AI CODE ANALYSIS ENDPOINTS (Microservice Integration)
+# 🤖  AI CODE ANALYSIS ENDPOINTS
 # ====================================================================
 
 @app.post("/api/ai/analyze", response_model=AIAnalysisResponse)
 async def analyze_code_with_ai(auth_request: Request, request: AIAnalysisRequest):
-    """
-    Analyze code using AI microservice.
-    
-    This endpoint forwards the code to the AI helper microservice which uses
-    LangChain agents to provide intelligent code analysis, suggestions, and insights.
-    """
+    """Analyze code using AI microservice."""
     try:
-        # Optional: Check authentication if required
         user_id = get_user_id_from_request(auth_request)
-        
-        # Initialize AI service client
         ai_client = AIServiceClient()
         
-        # Send request to AI microservice
         result = await ai_client.analyze_code(
             code=request.code,
             language=request.language,
             query=request.query,
-            session_id=request.session_id or user_id  # Use user_id as session if available
+            session_id=request.session_id or user_id
         )
         
         return AIAnalysisResponse(**result)
@@ -403,12 +387,7 @@ async def analyze_code_with_ai(auth_request: Request, request: AIAnalysisRequest
 
 @app.post("/api/ai/chat")
 async def chat_with_ai(auth_request: Request, request: AIAnalysisRequest):
-    """
-    Interactive chat with AI about code.
-    
-    Allows users to ask specific questions about their code and get
-    conversational responses from the AI agent.
-    """
+    """Interactive chat with AI about code."""
     try:
         if not request.query:
             raise HTTPException(status_code=400, detail="Query is required for chat")
@@ -455,44 +434,18 @@ async def clear_ai_session(auth_request: Request, session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ====================================================================
-# 📊  RUNTIME DATA ENDPOINTS
+# HEALTH CHECK & RUNTIME DATA
 # ====================================================================
-        
-    except Exception as e:
-        return CodeResponse(
-            output="",
-            runtime=0.0,
-            success=False,
-            error=f"Server error: {str(e)}",
-            saved_to_db=False
-        )
 
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "Python Code Runner API"}
-
-@app.get("/api/runtime-data")
-async def get_runtime_data(auth_request: Request):
-    """Get all algorithm runtime data from the database"""
-    try:
-        user_id = get_user_id_from_request(auth_request)
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Authentication required")
-        
-        # Get ALL runtime data from Supabase (not just user-specific)
-        response = supabase.table('algorithm_runtimes')\
-            .select('*')\
-            .order('created_at', desc=True)\
-            .execute()
-        
-        return {
-            'success': True,
-            'data': response.data
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve runtime data: {str(e)}")
+    """Health check endpoint with AI service status"""
+    ai_service_healthy = await check_ai_service()
+    return {
+        "status": "healthy",
+        "service": "Python Code Runner API",
+        "ai_service": "healthy" if ai_service_healthy else "unavailable"
+    }
 
 @app.get("/api/runtime-summary")
 async def get_runtime_summary(auth_request: Request):
@@ -502,7 +455,6 @@ async def get_runtime_summary(auth_request: Request):
         if not user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        # Get performance summary from the view
         response = supabase.rpc('get_algorithm_performance_summary', {
             'user_id_param': user_id
         }).execute()
@@ -513,14 +465,12 @@ async def get_runtime_summary(auth_request: Request):
         }
         
     except Exception as e:
-        # Fallback to direct query if RPC doesn't exist
         try:
             response = supabase.table('algorithm_runtimes')\
                 .select('algorithm_name, input_size, execution_time_ms')\
                 .eq('user_id', user_id)\
                 .execute()
             
-            # Process data to create summary
             summary = {}
             for record in response.data:
                 key = f"{record['algorithm_name']}_{record['input_size']}"
@@ -535,13 +485,12 @@ async def get_runtime_summary(auth_request: Request):
                 summary[key]['execution_count'] += 1
                 summary[key]['times'].append(record['execution_time_ms'])
             
-            # Calculate averages
             for key in summary:
                 times = summary[key]['times']
                 summary[key]['avg_execution_time_ms'] = sum(times) / len(times)
                 summary[key]['min_execution_time_ms'] = min(times)
                 summary[key]['max_execution_time_ms'] = max(times)
-                del summary[key]['times']  # Remove raw times from response
+                del summary[key]['times']
             
             return {
                 'success': True,
@@ -551,7 +500,42 @@ async def get_runtime_summary(auth_request: Request):
         except Exception as fallback_error:
             raise HTTPException(status_code=500, detail=f"Failed to retrieve runtime summary: {str(e)}")
 
+# ====================================================================
+# COMPLEXITY ANALYSIS
+# ====================================================================
+
+@app.post("/api/analyze-complexity", response_model=ComplexityAnalysisResponse)
+async def analyze_complexity(request: ComplexityAnalysisRequest):
+    """Analyze code complexity using Mistral AI"""
+    try:
+        if not request.code.strip():
+            raise HTTPException(status_code=400, detail="Code cannot be empty")
+        
+        analyzer = ComplexityAnalyzer()
+        result = analyzer.analyze_code(request.code, request.language)
+        
+        return ComplexityAnalysisResponse(
+            success=True,
+            time_complexity=result.get("time_complexity"),
+            time_complexity_class=result.get("time_complexity_class"),
+            space_complexity=result.get("space_complexity"),
+            space_complexity_class=result.get("space_complexity_class"),
+            explanation=result.get("explanation"),
+            best_case=result.get("best_case"),
+            average_case=result.get("average_case"),
+            worst_case=result.get("worst_case"),
+            algorithm_name=result.get("algorithm_name")
+        )
+        
+    except Exception as e:
+        print(f"Complexity analysis error: {e}")
+        return ComplexityAnalysisResponse(
+            success=False,
+            error=f"Analysis failed: {str(e)}"
+        )
+
+# Register visualization routes
 register_visualization_routes(app)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8010) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

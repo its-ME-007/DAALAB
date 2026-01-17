@@ -1,11 +1,5 @@
 /* =========================================================================
-   📊  Algorithm Performance Visualization
-   -------------------------------------------------------------------------
-   Handles:
-   1. Authentication and user session management
-   2. Backend plot loading and refresh
-   3. Database entries display and refresh
-   4. Loading states and error handling
+   📊  Algorithm Performance Visualization with Complexity Analysis
    ========================================================================= */
 
 (() => {
@@ -15,6 +9,7 @@
     const API_BASE_URL = window.location.origin;
     const API_ENDPOINTS = {
         plot: `${API_BASE_URL}/api/plot.png`,
+        complexityPlot: `${API_BASE_URL}/api/complexity-plot.png`,
         runtimeData: `${API_BASE_URL}/api/runtime-data`,
         logout: `${API_BASE_URL}/api/auth/logout`
     };
@@ -50,13 +45,169 @@
         syncAuthUI();
         
         // Initialize event listeners
-        document.getElementById('refreshBtn')?.addEventListener('click', loadBackendPlot);
+        document.getElementById('refreshBtn')?.addEventListener('click', () => {
+            loadBackendPlot();
+            loadComplexityPlots();
+        });
         document.getElementById('refreshEntriesBtn')?.addEventListener('click', loadDatabaseEntries);
         
-        // Load initial data
-        loadBackendPlot();
-        loadDatabaseEntries();
+        // Load all data
+        loadComplexityPlots();  // Load complexity first (if available)
+        loadBackendPlot();      // Then load runtime plot
+        loadDatabaseEntries();  // Finally load database entries
     });
+
+    /* -------------------------------------------------
+       📊  Complexity Analysis Functions
+    ------------------------------------------------- */
+    async function loadComplexityPlots() {
+        // Check if we have complexity analysis data from compiler page
+        const complexityData = localStorage.getItem('lastComplexityAnalysis');
+        
+        if (!complexityData) {
+            console.log('No complexity analysis data found - skipping complexity plots');
+            return;
+        }
+        
+        try {
+            const data = JSON.parse(complexityData);
+            console.log('Loading complexity plots for:', data);
+            
+            // Display complexity info card at the top
+            displayComplexityInfo(data);
+            
+            // Load complexity plot (time and space graphs)
+            await loadComplexityPlot(data);
+            
+        } catch (error) {
+            console.error('Error loading complexity plots:', error);
+        }
+    }
+
+    // Update the displayComplexityInfo function in visualization.js:
+
+function displayComplexityInfo(data) {
+    const languageIcon = data.language === 'cpp' ? '🔧' : '🐍';
+    const languageName = data.language === 'cpp' ? 'C++' : 'Python';
+    
+    const infoHTML = `
+        <div class="complexity-info-section" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem; border: 2px solid #e6f2ff; max-width: 1200px; margin-left: auto; margin-right: auto;">
+            <h3 style="color: #667eea; margin: 0 0 1rem 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-brain"></i> Latest Complexity Analysis ${languageIcon} ${languageName}
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <!-- Time Complexity Card -->
+                <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 1rem; border-radius: 10px; border: 2px solid #667eea;">
+                    <div style="font-size: 0.75rem; color: #718096; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                        ⏱️ Time
+                    </div>
+                    <div style="font-size: 2rem; font-weight: bold; color: #667eea; margin-bottom: 0.25rem;">
+                        ${data.time_complexity}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #4a5568; text-transform: uppercase; font-weight: 600;">
+                        ${data.time_class}
+                    </div>
+                </div>
+                
+                <!-- Space Complexity Card -->
+                <div style="background: linear-gradient(135deg, #f093fb15 0%, #f5576c15 100%); padding: 1rem; border-radius: 10px; border: 2px solid #f093fb;">
+                    <div style="font-size: 0.75rem; color: #718096; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                        💾 Space
+                    </div>
+                    <div style="font-size: 2rem; font-weight: bold; color: #f093fb; margin-bottom: 0.25rem;">
+                        ${data.space_complexity}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #4a5568; text-transform: uppercase; font-weight: 600;">
+                        ${data.space_class}
+                    </div>
+                </div>
+            </div>
+            
+            ${data.algorithm_name && data.algorithm_name !== 'Unknown Algorithm' ? `
+                <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: #f7fafc; border-radius: 8px; border-left: 3px solid #48bb78; font-size: 0.9rem;">
+                    <strong style="color: #2d3748;">🔍 Algorithm:</strong> 
+                    <span style="color: #48bb78; font-weight: 600;">${data.algorithm_name}</span>
+                    <span style="color: #718096; font-size: 0.85rem; margin-left: 0.5rem;">(${languageName})</span>
+                </div>
+            ` : ''}
+            
+            <div style="padding: 0.875rem; background: #f7fafc; border-radius: 8px; border-left: 3px solid #667eea;">
+                <strong style="color: #2d3748; display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">📝 Explanation:</strong>
+                <p style="margin: 0; line-height: 1.6; color: #4a5568; font-size: 0.875rem;">
+                    ${data.explanation}
+                </p>
+            </div>
+        </div>
+    `;
+    
+    // Insert at the very top of main content
+    const mainContent = document.querySelector('.main-content') || document.querySelector('main');
+    if (mainContent) {
+        mainContent.insertAdjacentHTML('afterbegin', infoHTML);
+    }
+}
+
+    async function loadComplexityPlot(data) {
+        try {
+            showLoading(true);
+            
+            const token = getToken();
+            const url = `${API_ENDPOINTS.complexityPlot}?time_class=${data.time_class}&space_class=${data.space_class}&algorithm_name=${encodeURIComponent(data.algorithm_name || 'Algorithm')}`;
+            
+            console.log('Fetching complexity plot from:', url);
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load complexity plot: ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+            
+            // Create a new plot container for complexity
+            const complexityPlotHTML = `
+                <div class="chart-section" style="margin-bottom: 2rem;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-area"></i> Theoretical Complexity Visualization</h2>
+                        <div style="font-size: 0.875rem; color: #718096; font-weight: normal;">
+                            Based on AI analysis of your code
+                        </div>
+                    </div>
+                    <div class="plot-container">
+                        <img id="complexityPlot" src="${imageUrl}" alt="Complexity Analysis" style="max-width:100%; border-radius:12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;">
+                        <div class="plot-info" style="margin-top: 1rem; padding: 1rem; background: #edf2f7; border-radius: 8px; border-left: 4px solid #667eea;">
+                            <p style="margin: 0; color: #4a5568; font-size: 0.9rem; line-height: 1.6;">
+                                <i class="fas fa-info-circle" style="color: #667eea;"></i> 
+                                These graphs show theoretical time and space complexity curves based on Big-O notation. 
+    You can now see the TRUE curve shapes: quadratic (O(n²)) shows as a parabola, 
+    cubic (O(n³)) shows as a steep curve, linear (O(n)) is a straight diagonal line.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert after complexity info card
+            const infoSection = document.querySelector('.complexity-info-section');
+            if (infoSection) {
+                infoSection.insertAdjacentHTML('afterend', complexityPlotHTML);
+            }
+            
+            console.log('✅ Complexity plot loaded successfully');
+            
+        } catch (error) {
+            console.error('❌ Error loading complexity plot:', error);
+            showError('Failed to load complexity graphs. Try analyzing code again.');
+        } finally {
+            showLoading(false);
+        }
+    }
 
     /* -------------------------------------------------
        📊  Backend Plot Functions
@@ -78,7 +229,11 @@
             
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            document.getElementById('backendPlot').src = url;
+            
+            const plotImg = document.getElementById('backendPlot');
+            if (plotImg) {
+                plotImg.src = url;
+            }
             
         } catch (error) {
             console.error('Error loading plot:', error);
@@ -167,7 +322,8 @@
     }
 
     function showError(message) {
-        alert(message);
+        console.error(message);
+        // Could add a toast notification here
     }
 
     function escapeHtml(text) {
@@ -189,4 +345,4 @@
             window.location.replace('login.html');
         }
     }
-})(); 
+})();

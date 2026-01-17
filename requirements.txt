@@ -29,3 +29,5 @@ requests
 docker
 python-dotenv
 supabase
+
+mistralai

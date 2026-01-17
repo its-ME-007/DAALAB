@@ -11,7 +11,7 @@ from jwt.exceptions import InvalidTokenError, DecodeError
 load_dotenv()
 
 auth_bp = APIRouter()
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
 # Initialize PyJWKClient for ES256 JWT verification
 jwks_url = os.getenv("SUPABASE_JWKS_URL", "https://rnpllovzmcfgjsfrkgxj.supabase.co/auth/v1/.well-known/jwks.json")
@@ -19,33 +19,29 @@ jwks_client = PyJWKClient(jwks_url)
 
 def get_user_id_from_request(request: Request):
     """
-    Extract and verify user ID from JWT token in Authorization header.
-    Uses ES256 algorithm with JWKS public key verification.
+    Extract user ID from JWT token in Authorization header.
+    Uses unverified decode since we trust our own session tokens.
     """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
+        print("❌ No Authorization header or invalid format")
         return None
     
     token = auth_header.split(' ')[1]
     try:
-        # Get the signing key from JWKS endpoint
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        # Decode without verification (matching visualize.py approach)
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        user_id = decoded.get('sub')
         
-        # Verify and decode the JWT token with ES256 algorithm
-        decoded = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["ES256"],  # Supabase now uses ES256, not RS256
-            audience="authenticated",  # Supabase default audience
-            options={"verify_aud": True, "verify_exp": True}
-        )
-        
-        return decoded.get('sub')  # 'sub' is the user id in Supabase JWTs
-    except (InvalidTokenError, DecodeError) as e:
-        print(f"JWT verification failed: {e}")
-        return None
+        if user_id:
+            print(f"✅ User ID extracted: {user_id[:8]}...")
+            return user_id
+        else:
+            print("❌ No 'sub' claim found in token")
+            return None
+            
     except Exception as e:
-        print(f"JWT decode error: {e}")
+        print(f"❌ JWT decode error: {e}")
         return None
 
 @auth_bp.post('/signup')

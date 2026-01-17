@@ -23,7 +23,7 @@
                 <a href="visualization.html" class="btn btn-secondary">
                     <i class="fas fa-chart-line"></i> Visualizer
                 </a>
-                <a href="http://localhost:8000/dev-ui/" class="btn btn-secondary">
+                <a href="/agent.html" class="btn btn-secondary">
                     <i class="fas fa-robot"></i> Agent
                 </a>
                 <button id="logoutButton" class="btn btn-danger">
@@ -146,192 +146,231 @@ int main() {
             <p>Compiling and running C++ code...</p>
         </div>
     </div>
-    <!-- C++ specific script -->
-    <script>
-        // C++ Code Runner Logic
-        document.addEventListener('DOMContentLoaded', function() {
-            const codeEditor = document.getElementById('codeEditor');
-            const runBtn = document.getElementById('runBtn');
-            const clearBtn = document.getElementById('clearBtn');
-            const output = document.getElementById('output');
-            const statusIndicator = document.getElementById('statusIndicator');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const algorithmName = document.getElementById('algorithmName');
-            const inputSize = document.getElementById('inputSize');
-
-            // Run C++ code
-            async function runCppCode() {
-                const code = codeEditor.value.trim();
-                if (!code) {
-                    showOutput('Please enter some C++ code to run.', 'error');
-                    return;
-                }
-
-                showLoading(true);
-                updateStatus('Compiling and running...', 'running');
-
-                try {
-                    const token = localStorage.getItem('token');
-                    const response = await fetch('/api/run-cpp', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            code: code,
-                            algorithm_name: algorithmName.value || null,
-                            input_size: inputSize.value ? parseInt(inputSize.value) : null
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const runtimeMs = (result.runtime * 1000).toFixed(2);
-                        const outputText = `Output:\n${result.output}\n\nExecution time: ${runtimeMs} ms`;
-                        showOutput(outputText, 'success');
-                        updateStatus('Completed', 'success');
-                    } else {
-                        showOutput(`Error: ${result.error}`, 'error');
-                        updateStatus('Failed', 'error');
-                    }
-                } catch (error) {
-                    showOutput(`Network error: ${error.message}`, 'error');
-                    updateStatus('Failed', 'error');
-                } finally {
-                    showLoading(false);
-                }
-            }
-
-            // Clear code editor
-            function clearCode() {
-                codeEditor.value = '';
-                showOutput('Code editor cleared.', 'info');
-            }
-
-            // Show output with formatting
-            function showOutput(message, type = 'info') {
-                const timestamp = new Date().toLocaleTimeString();
-                const outputDiv = document.createElement('div');
-                outputDiv.className = `output-message ${type}`;
-                outputDiv.innerHTML = `
-                    <div class="output-header">
-                        <span class="output-type">${type.toUpperCase()}</span>
-                        <span class="output-time">${timestamp}</span>
-                    </div>
-                    <pre class="output-text">${message}</pre>
-                `;
-                output.appendChild(outputDiv);
-                output.scrollTop = output.scrollHeight;
-            }
-
-            // Update status indicator
-            function updateStatus(text, status) {
-                const statusText = statusIndicator.querySelector('.status-text');
-                const statusDot = statusIndicator.querySelector('.status-dot');
-                
-                statusText.textContent = text;
-                statusIndicator.className = `status-indicator ${status}`;
-            }
-
-            // Show/hide loading overlay
-            function showLoading(show) {
-                loadingOverlay.style.display = show ? 'flex' : 'none';
-            }
-
-            // Event listeners
-            runBtn.addEventListener('click', runCppCode);
-            clearBtn.addEventListener('click', clearCode);
-
-            // Keyboard shortcuts
-            codeEditor.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.key === 'Enter') {
-                    runCppCode();
-                }
-            });
-        });
-    </script>
-    <script>
-        // Add save/load functionality for C++
-        document.addEventListener('DOMContentLoaded', () => {
-            const saveBtn = document.getElementById('saveBtn');
-            const loadBtn = document.getElementById('loadBtn');
-            const codeEditor = document.getElementById('codeEditor');
-            
-            // Save code to database
-            async function saveCode() {
-                const code = codeEditor.value.trim();
-                if (!code) {
-                    alert('No code to save!');
-                    return;
-                }
-                
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    alert('Please login first!');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                try {
-                    const response = await fetch('http://localhost:8000/api/code/cpp', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ content: code })
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        alert('✅ Code saved successfully!');
-                    } else {
-                        alert('❌ Failed to save: ' + data.message);
-                    }
-                } catch (error) {
-                    alert('❌ Network error: ' + error.message);
-                }
-            }
-            
-            // Load code from database
-            async function loadCode() {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    alert('Please login first!');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                try {
-                    const response = await fetch('http://localhost:8000/api/code/cpp', {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success && data.file) {
-                        codeEditor.value = data.file.code_content;
-                        alert('✅ Code loaded successfully!');
-                    } else {
-                        alert('ℹ️ No saved code found.');
-                    }
-                } catch (error) {
-                    alert('❌ Network error: ' + error.message);
-                }
-            }
-            
-            // Auto-load on page load
-            loadCode();
-            
-            // Event listeners
-            if (saveBtn) saveBtn.addEventListener('click', saveCode);
-            if (loadBtn) loadBtn.addEventListener('click', loadCode);
-        });
-    </script>
+    
     <script src="/static/navigation.js"></script>
+    <script>
+console.log('🔧 C++ Compiler script starting...');
+
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOM loaded');
+    
+    const codeEditor = document.getElementById('codeEditor');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const loadBtn = document.getElementById('loadBtn');
+    const output = document.getElementById('output');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const algorithmName = document.getElementById('algorithmName');
+    const inputSize = document.getElementById('inputSize');
+
+    console.log('🔧 Elements found:', {
+        runBtn: !!runBtn,
+        codeEditor: !!codeEditor,
+        algorithmName: !!algorithmName,
+        inputSize: !!inputSize
+    });
+
+    // Run C++ code
+    runBtn.onclick = async function() {
+        console.log('▶️ RUN BUTTON CLICKED!');
+        
+        const code = codeEditor.value.trim();
+        if (!code) {
+            showOutput('Please enter some C++ code to run.', 'error');
+            return;
+        }
+
+        showLoading(true);
+        updateStatus('Compiling and running...', 'running');
+
+        try {
+            const token = localStorage.getItem('token');
+            console.log('🔑 Token present:', !!token);
+            
+            const response = await fetch('/api/run-cpp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    code: code,
+                    algorithm_name: algorithmName.value || null,
+                    input_size: inputSize.value ? parseInt(inputSize.value) : null
+                })
+            });
+
+            const result = await response.json();
+            console.log('📥 C++ Run result:', result);
+
+            if (result.success) {
+                const runtimeMs = (result.runtime * 1000).toFixed(2);
+                const outputText = `Output:\n${result.output}\n\nExecution time: ${runtimeMs} ms`;
+                showOutput(outputText, 'success');
+                updateStatus('Completed', 'success');
+                
+                // ✨ ANALYZE COMPLEXITY
+                console.log('🧠 CALLING COMPLEXITY ANALYSIS...');
+                console.log('📊 Algorithm name:', algorithmName.value);
+                console.log('📏 Input size:', inputSize.value);
+                
+                await analyzeComplexity(code, algorithmName.value);
+                
+            } else {
+                showOutput(`Error: ${result.error}`, 'error');
+                updateStatus('Failed', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error:', error);
+            showOutput(`Network error: ${error.message}`, 'error');
+            updateStatus('Failed', 'error');
+        } finally {
+            showLoading(false);
+        }
+    };
+
+    // Analyze complexity function
+    async function analyzeComplexity(code, algName) {
+        console.log('🧠 analyzeComplexity() called');
+        console.log('📝 Code length:', code.length);
+        console.log('🏷️ Algorithm name:', algName);
+        
+        try {
+            const token = localStorage.getItem('token');
+            console.log('🔑 Token for analysis:', !!token);
+            
+            const requestBody = {
+                code: code,
+                language: 'cpp'
+            };
+            console.log('📤 Sending to /api/analyze-complexity:', requestBody);
+            
+            const response = await fetch('/api/analyze-complexity', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            console.log('📥 Analysis response status:', response.status);
+            const result = await response.json();
+            console.log('📊 FULL Analysis result:', result);
+
+            if (result.success) {
+                const complexityData = {
+                    time_class: result.time_complexity_class,
+                    space_class: result.space_complexity_class,
+                    algorithm_name: algName || result.algorithm_name || 'Unknown',
+                    time_complexity: result.time_complexity,
+                    space_complexity: result.space_complexity,
+                    explanation: result.explanation,
+                    language: 'cpp'
+                };
+                
+                console.log('💾 SAVING to localStorage:', complexityData);
+                localStorage.setItem('lastComplexityAnalysis', JSON.stringify(complexityData));
+                
+                const verify = localStorage.getItem('lastComplexityAnalysis');
+                console.log('✅ VERIFIED localStorage:', verify);
+                
+                showOutput('\n✅ Complexity analyzed! Check Visualizer.', 'success');
+            } else {
+                console.error('⚠️ Analysis failed:', result.error);
+                showOutput(`\n⚠️ Analysis failed: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('❌ Analysis exception:', error);
+            showOutput(`\n⚠️ Analysis error: ${error.message}`, 'error');
+        }
+    }
+
+    // Other functions
+    clearBtn.onclick = function() {
+        codeEditor.value = '';
+        showOutput('Code cleared.', 'info');
+    };
+
+    saveBtn.onclick = async function() {
+        const code = codeEditor.value.trim();
+        if (!code) return alert('No code to save!');
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/code/cpp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ content: code })
+            });
+            
+            const data = await response.json();
+            alert(data.success ? '✅ Saved!' : '❌ Failed: ' + data.message);
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
+        }
+    };
+
+    loadBtn.onclick = async function() {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/code/cpp', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            const data = await response.json();
+            if (data.success && data.file) {
+                codeEditor.value = data.file.code_content;
+                console.log('✅ Code loaded');
+            }
+        } catch (error) {
+            console.warn('Load error:', error);
+        }
+    };
+
+    function showOutput(message, type) {
+        const timestamp = new Date().toLocaleTimeString();
+        const div = document.createElement('div');
+        div.className = `output-message ${type}`;
+        div.innerHTML = `
+            <div class="output-header">
+                <span class="output-type">${type.toUpperCase()}</span>
+                <span class="output-time">${timestamp}</span>
+            </div>
+            <pre class="output-text">${message}</pre>
+        `;
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
+    }
+
+    function updateStatus(text, status) {
+        const statusText = statusIndicator.querySelector('.status-text');
+        statusIndicator.className = `status-indicator ${status}`;
+        statusText.textContent = text;
+    }
+
+    function showLoading(show) {
+        loadingOverlay.style.display = show ? 'flex' : 'none';
+    }
+
+    // Keyboard shortcut
+    codeEditor.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            runBtn.click();
+        }
+    });
+
+    // Auto-load
+    loadBtn.click();
+    
+    console.log('✅ All event listeners attached');
+});
+</script>
 </body>
-</html> 
+</html>

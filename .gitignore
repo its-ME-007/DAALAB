@@ -5,3 +5,7 @@ user.cpp
 temp_files/
 .agent
 .env
+code
+venv/
+code_assist/.env
+code_assist/__pycache__/
