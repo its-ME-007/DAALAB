@@ -11,6 +11,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def sanitize_text(text: str) -> str:
+    """Remove non-ASCII characters (including emojis) to prevent Windows charmap errors."""
+    if not text:
+        return text
+    return text.encode('ascii', errors='replace').decode('ascii')
+
 class ComplexityAnalyzer:
     def __init__(self):
         self.client = Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
@@ -104,6 +110,11 @@ Rules:
                 if field not in result:
                     raise ValueError(f"Missing required field: {field}")
             
+            # Sanitize all text fields to remove emojis
+            for key, value in result.items():
+                if isinstance(value, str):
+                    result[key] = sanitize_text(value)
+            
             return result
             
         except json.JSONDecodeError as e:
@@ -118,6 +129,7 @@ Rules:
     def _fallback_response(self, error_msg: str) -> dict:
         """Return a safe fallback response when analysis fails"""
         return {
+            "error": sanitize_text(f"Unable to analyze complexity: {error_msg}"),
             "time_complexity": "O(n)",
             "time_complexity_class": "linear",
             "space_complexity": "O(1)",

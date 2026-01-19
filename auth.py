@@ -24,7 +24,7 @@ def get_user_id_from_request(request: Request):
     """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
-        print("❌ No Authorization header or invalid format")
+        print("[ERROR] No Authorization header or invalid format")
         return None
     
     token = auth_header.split(' ')[1]
@@ -34,14 +34,14 @@ def get_user_id_from_request(request: Request):
         user_id = decoded.get('sub')
         
         if user_id:
-            print(f"✅ User ID extracted: {user_id[:8]}...")
+            print(f"[OK] User ID extracted: {user_id[:8]}...")
             return user_id
         else:
-            print("❌ No 'sub' claim found in token")
+            print("[ERROR] No 'sub' claim found in token")
             return None
             
     except Exception as e:
-        print(f"❌ JWT decode error: {e}")
+        print(f"[ERROR] JWT decode error: {e}")
         return None
 
 @auth_bp.post('/signup')
@@ -162,4 +162,12 @@ async def logout():
             'message': 'Logged out successfully'
         })
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
+
+@auth_bp.get('/health')
+async def auth_health():
+    """Health check for authentication service."""
+    return {
+        "status": "healthy",
+        "service": "authentication"
+    } 

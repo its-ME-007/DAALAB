@@ -310,9 +310,9 @@ window.addEventListener('DOMContentLoaded', function() {
             });
             
             const data = await response.json();
-            alert(data.success ? '✅ Saved!' : '❌ Failed: ' + data.message);
+            alert(data.success ? '[OK] Saved!' : '[ERROR] Failed: ' + data.message);
         } catch (error) {
-            alert('❌ Error: ' + error.message);
+            alert('[ERROR] Error: ' + error.message);
         }
     };
 

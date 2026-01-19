@@ -1,0 +1,13 @@
+INFO:     Started server process [14632]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+[START] Starting load balancer on 0.0.0.0:8080
+[BALANCER] Load balancer initialized
+[POOL] Scheduler pool: ['http://localhost:8000']
+[MONITOR] Starting health monitor...
+INFO:     127.0.0.1:54286 - "GET /lb/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54848 - "GET /lb/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65474 - "POST /api/run-code HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54626 - "POST /api/run-code HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59041 - "POST /api/run-code HTTP/1.1" 200 OK

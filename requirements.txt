@@ -1,15 +1,16 @@
-# No external dependencies required for heap sort
-# Python built-in modules used: sys, json, random
+# ============================================================================
+# DAALAB Scheduler-Worker Architecture Dependencies
+# ============================================================================
 
-# Core dependencies for Algorithm Visualizer
-streamlit
-fastapi
-uvicorn
-pydantic
-# pandas==2.2.1
-# numpy==1.24.3
+# Core Web Framework
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+
+# Visualization
 matplotlib==3.8.2
 plotly
+streamlit
 
 # Authentication & JWT (ES256 support)
 PyJWT[crypto]>=2.8.0
@@ -22,12 +23,24 @@ langchain-community>=0.0.20
 langchain-classic  # For legacy AgentExecutor support
 
 # HTTP client for microservice communication
-httpx
+httpx>=0.24.0
 requests
 
 # Code execution dependencies
-docker
+docker>=6.0.0
 python-dotenv
 supabase
 
+# AI services
 mistralai
+
+# Scheduler-Worker Architecture (New)
+psutil>=5.9.0  # Resource monitoring for workers
+
+# Testing & Load Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+locust>=2.15.0
+
+# Development utilities
+python-multipart  # For file uploads

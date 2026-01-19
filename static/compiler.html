@@ -173,7 +173,7 @@ print(greet("World"))</code></pre>
                 }
                 
                 try {
-                    const response = await fetch('http://localhost:8000/api/code/python', {
+                    const response = await fetch('http://localhost:8010/api/code/python', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -184,12 +184,12 @@ print(greet("World"))</code></pre>
                     
                     const data = await response.json();
                     if (data.success) {
-                        alert('✅ Code saved successfully!');
+                        alert('[OK] Code saved successfully!');
                     } else {
-                        alert('❌ Failed to save: ' + data.message);
+                        alert('[ERROR] Failed to save: ' + data.message);
                     }
                 } catch (error) {
-                    alert('❌ Network error: ' + error.message);
+                    alert('[ERROR] Network error: ' + error.message);
                 }
             }
             
@@ -203,7 +203,7 @@ print(greet("World"))</code></pre>
                 }
                 
                 try {
-                    const response = await fetch('http://localhost:8000/api/code/python', {
+                    const response = await fetch('http://localhost:8010/api/code/python', {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -213,12 +213,12 @@ print(greet("World"))</code></pre>
                     const data = await response.json();
                     if (data.success && data.file) {
                         codeEditor.value = data.file.code_content;
-                        alert('✅ Code loaded successfully!');
+                        alert('[OK] Code loaded successfully!');
                     } else {
-                        alert('ℹ️ No saved code found.');
+                        alert('[INFO] No saved code found.');
                     }
                 } catch (error) {
-                    alert('❌ Network error: ' + error.message);
+                    alert('[ERROR] Network error: ' + error.message);
                 }
             }
             

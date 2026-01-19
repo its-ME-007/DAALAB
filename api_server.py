@@ -1,10 +1,35 @@
+"""API Server - Frontend Gateway for DAALAB Platform
+
+ARCHITECTURE ROLE:
+This service acts as a FRONTEND/API GATEWAY that:
+1. Serves static HTML files (UI)
+2. Handles user authentication (login/signup)
+3. Manages code file storage in Supabase database
+4. Forwards code execution requests to the scheduler-worker architecture via load balancer
+5. Provides AI analysis and complexity analysis endpoints
+
+EXECUTION FLOW:
+Frontend (HTML) → api_server.py (port 8010) → Load Balancer (port 8080) 
+→ Scheduler (port 8000) → Workers (ports 8001, 8002) → Docker containers
+
+This service does NOT execute code directly anymore - all execution is delegated
+to the distributed scheduler-worker system for better load distribution, fault tolerance,
+and complexity-aware scheduling.
+
+KEY ENDPOINTS:
+- /api/run-code: Forward Python execution to scheduler
+- /api/run-cpp: Forward C++ execution to scheduler
+- /api/ai/*: AI-powered code analysis (direct to AI service)
+- /api/code/*: Database operations for code files
+- /api/auth/*: User authentication
+"""
+
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-from container_runner import ContainerRunner, CppContainerRunner
 from auth import auth_bp, get_user_id_from_request
 from code_assist import AIServiceClient, check_ai_service  # ✅ Already imported
 import uvicorn
@@ -17,7 +42,10 @@ from complexity_analyzer import ComplexityAnalyzer
 
 load_dotenv()
 
-app = FastAPI(title="Python Code Runner API", version="1.0.0")
+app = FastAPI(title="Python Code Runner API (Frontend Gateway)", version="2.0.0")
+
+# Load balancer configuration
+LOAD_BALANCER_URL = os.getenv("LOAD_BALANCER_URL", "http://localhost:8080")
 
 # Initialize Supabase client
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
@@ -252,49 +280,93 @@ async def get_all_code_files(auth_request: Request):
 
 @app.post("/api/run-code", response_model=CodeResponse)
 async def run_code(auth_request: Request, request: CodeRequest):
-    """Execute Python code in a container and save runtime data"""
+    """
+    Execute Python code with complexity analysis.
+    Flow: Save to DB → Analyze complexity (Mistral) → Forward to Load Balancer → Scheduler → Worker
+    """
     try:
         if not request.code.strip():
             raise HTTPException(status_code=400, detail="Code cannot be empty")
         
-        runner = ContainerRunner()
-        output, runtime = runner.run_code(request.code)
-        runtime_ms = runtime * 1000
+        user_id = get_user_id_from_request(auth_request)
         
-        saved_to_db = False
-        if request.algorithm_name and request.input_size:
+        # Step 1: Save code to Supabase if user is authenticated
+        if user_id:
             try:
-                user_id = get_user_id_from_request(auth_request)
-                
-                if user_id:
-                    supabase.table('algorithm_runtimes').insert({
-                        'user_id': user_id,
-                        'algorithm_name': request.algorithm_name,
-                        'input_size': request.input_size,
-                        'execution_time_ms': runtime_ms,
-                        'code_snippet': request.code[:1000],
-                        'output_result': output[:1000]
-                    }).execute()
-                    saved_to_db = True
+                supabase.table('user_code_files').upsert({
+                    'user_id': user_id,
+                    'file_type': 'python',
+                    'code_content': request.code
+                }, on_conflict='user_id,file_type').execute()
+            except Exception as db_error:
+                print(f"Database save warning: {db_error}")
+        
+        # Step 2: Analyze complexity using Mistral
+        complexity_result = None
+        try:
+            analyzer = ComplexityAnalyzer()
+            complexity_result = analyzer.analyze_code(request.code, "python")
+            print(f"[COMPLEXITY] {complexity_result.get('time_complexity')} - {complexity_result.get('algorithm_name')}")
+        except Exception as complexity_error:
+            print(f"Complexity analysis warning: {complexity_error}")
+        
+        # Step 3: Forward to load balancer -> scheduler -> worker
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{LOAD_BALANCER_URL}/api/run-code",
+                json={
+                    "code": request.code,
+                    "language": "python",
+                    "user_id": user_id,
+                    "complexity_hint": complexity_result  # Pass complexity to scheduler
+                }
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Scheduler error: {response.text}"
+                )
+            
+            result = response.json()
+            output = result.get("output", "")
+            runtime = result.get("runtime", 0.0)
+            success = result.get("success", False)
+            error = result.get("error")
+            runtime_ms = runtime * 1000
+        
+        # Step 4: Save runtime data to database if algorithm metadata provided
+        saved_to_db = False
+        if request.algorithm_name and request.input_size and user_id:
+            try:
+                supabase.table('algorithm_runtimes').insert({
+                    'user_id': user_id,
+                    'algorithm_name': request.algorithm_name,
+                    'input_size': request.input_size,
+                    'execution_time_ms': runtime_ms,
+                    'code_snippet': request.code[:1000],
+                    'output_result': output[:1000]
+                }).execute()
+                saved_to_db = True
             except Exception as db_error:
                 print(f"Database save error: {db_error}")
-        
-        if output.startswith("Error:"):
-            return CodeResponse(
-                output="",
-                runtime=runtime,
-                success=False,
-                error=output,
-                saved_to_db=saved_to_db
-            )
         
         return CodeResponse(
             output=output,
             runtime=runtime,
-            success=True,
+            success=success,
+            error=error,
             saved_to_db=saved_to_db
         )
         
+    except httpx.TimeoutException:
+        return CodeResponse(
+            output="",
+            runtime=0.0,
+            success=False,
+            error="Request timeout: Code execution took too long",
+            saved_to_db=False
+        )
     except Exception as e:
         return CodeResponse(
             output="",
@@ -306,49 +378,93 @@ async def run_code(auth_request: Request, request: CodeRequest):
 
 @app.post("/api/run-cpp", response_model=CodeResponse)
 async def run_cpp_code(auth_request: Request, request: CodeRequest):
-    """Execute C++ code in a container and save runtime data"""
+    """
+    Execute C++ code with complexity analysis.
+    Flow: Save to DB → Analyze complexity (Mistral) → Forward to Load Balancer → Scheduler → Worker
+    """
     try:
         if not request.code.strip():
             raise HTTPException(status_code=400, detail="Code cannot be empty")
         
-        runner = CppContainerRunner()
-        output, runtime = runner.run_code(request.code)
-        runtime_ms = runtime * 1000
+        user_id = get_user_id_from_request(auth_request)
         
-        saved_to_db = False
-        if request.algorithm_name and request.input_size:
+        # Step 1: Save code to Supabase if user is authenticated
+        if user_id:
             try:
-                user_id = get_user_id_from_request(auth_request)
-                
-                if user_id:
-                    supabase.table('algorithm_runtimes').insert({
-                        'user_id': user_id,
-                        'algorithm_name': request.algorithm_name,
-                        'input_size': request.input_size,
-                        'execution_time_ms': runtime_ms,
-                        'code_snippet': request.code[:1000],
-                        'output_result': output[:1000]
-                    }).execute()
-                    saved_to_db = True
+                supabase.table('user_code_files').upsert({
+                    'user_id': user_id,
+                    'file_type': 'cpp',
+                    'code_content': request.code
+                }, on_conflict='user_id,file_type').execute()
+            except Exception as db_error:
+                print(f"Database save warning: {db_error}")
+        
+        # Step 2: Analyze complexity using Mistral
+        complexity_result = None
+        try:
+            analyzer = ComplexityAnalyzer()
+            complexity_result = analyzer.analyze_code(request.code, "cpp")
+            print(f"[COMPLEXITY] {complexity_result.get('time_complexity')} - {complexity_result.get('algorithm_name')}")
+        except Exception as complexity_error:
+            print(f"Complexity analysis warning: {complexity_error}")
+        
+        # Step 3: Forward to load balancer -> scheduler -> worker
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{LOAD_BALANCER_URL}/api/run-code",
+                json={
+                    "code": request.code,
+                    "language": "cpp",
+                    "user_id": user_id,
+                    "complexity_hint": complexity_result  # Pass complexity to scheduler
+                }
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Scheduler error: {response.text}"
+                )
+            
+            result = response.json()
+            output = result.get("output", "")
+            runtime = result.get("runtime", 0.0)
+            success = result.get("success", False)
+            error = result.get("error")
+            runtime_ms = runtime * 1000
+        
+        # Step 4: Save runtime data to database if algorithm metadata provided
+        saved_to_db = False
+        if request.algorithm_name and request.input_size and user_id:
+            try:
+                supabase.table('algorithm_runtimes').insert({
+                    'user_id': user_id,
+                    'algorithm_name': request.algorithm_name,
+                    'input_size': request.input_size,
+                    'execution_time_ms': runtime_ms,
+                    'code_snippet': request.code[:1000],
+                    'output_result': output[:1000]
+                }).execute()
+                saved_to_db = True
             except Exception as db_error:
                 print(f"Database save error: {db_error}")
-        
-        if output.startswith("Error:"):
-            return CodeResponse(
-                output="",
-                runtime=runtime,
-                success=False,
-                error=output,
-                saved_to_db=saved_to_db
-            )
         
         return CodeResponse(
             output=output,
             runtime=runtime,
-            success=True,
+            success=success,
+            error=error,
             saved_to_db=saved_to_db
         )
         
+    except httpx.TimeoutException:
+        return CodeResponse(
+            output="",
+            runtime=0.0,
+            success=False,
+            error="Request timeout: Code execution took too long",
+            saved_to_db=False
+        )
     except Exception as e:
         return CodeResponse(
             output="",
@@ -359,7 +475,7 @@ async def run_cpp_code(auth_request: Request, request: CodeRequest):
         )
 
 # ====================================================================
-# 🤖  AI CODE ANALYSIS ENDPOINTS
+# AI CODE ANALYSIS ENDPOINTS
 # ====================================================================
 
 @app.post("/api/ai/analyze", response_model=AIAnalysisResponse)
@@ -538,4 +654,4 @@ async def analyze_complexity(request: ComplexityAnalysisRequest):
 register_visualization_routes(app)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8010)

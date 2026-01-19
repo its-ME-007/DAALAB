@@ -58,39 +58,39 @@ def detect_code_issues(code: str, language: str = "python") -> str:
         if language.lower() == "python":
             # Check for common issues
             if "eval(" in code:
-                issues.append("⚠️ Security: Use of eval() detected - security risk")
+                issues.append("[WARNING] Security: Use of eval() detected - security risk")
             
             if "exec(" in code:
-                issues.append("⚠️ Security: Use of exec() detected - security risk")
+                issues.append("[WARNING] Security: Use of exec() detected - security risk")
             
             # Check for bare excepts
             if re.search(r'except:\s*$', code, re.MULTILINE):
-                issues.append("⚠️ Best Practice: Bare except clause found - catch specific exceptions")
+                issues.append("[WARNING] Best Practice: Bare except clause found - catch specific exceptions")
             
             # Check for mutable default arguments
             if re.search(r'def\s+\w+\([^)]*=\s*\[', code):
-                issues.append("⚠️ Bug Risk: Mutable default argument (list) detected")
+                issues.append("[WARNING] Bug Risk: Mutable default argument (list) detected")
             
             if re.search(r'def\s+\w+\([^)]*=\s*\{', code):
-                issues.append("⚠️ Bug Risk: Mutable default argument (dict) detected")
+                issues.append("[WARNING] Bug Risk: Mutable default argument (dict) detected")
             
             # Check for global variables
             if re.search(r'^\s*global\s+', code, re.MULTILINE):
-                issues.append("💡 Code Smell: Global variables used - consider refactoring")
+                issues.append("[INFO] Code Smell: Global variables used - consider refactoring")
             
             # Check line length
             long_lines = [i+1 for i, line in enumerate(code.split('\n')) if len(line) > 100]
             if long_lines:
-                issues.append(f"📏 Style: Lines exceeding 100 characters: {long_lines[:5]}")
+                issues.append(f"[STYLE] Lines exceeding 100 characters: {long_lines[:5]}")
             
             # Try parsing for syntax errors
             try:
                 ast.parse(code)
             except SyntaxError as e:
-                issues.append(f"❌ Syntax Error: Line {e.lineno}: {e.msg}")
+                issues.append(f"[ERROR] Syntax Error: Line {e.lineno}: {e.msg}")
         
         if not issues:
-            return "✅ No major issues detected! Code looks good."
+            return "[OK] No major issues detected! Code looks good."
         
         return "Issues Found:\n\n" + "\n".join(issues)
     
@@ -106,30 +106,30 @@ def suggest_improvements(code: str, language: str = "python") -> str:
         if language.lower() == "python":
             # Check for docstrings
             if 'def ' in code and '"""' not in code and "'''" not in code:
-                suggestions.append("📝 Add docstrings to functions for better documentation")
+                suggestions.append("[DOC] Add docstrings to functions for better documentation")
             
             # Check for type hints
             if 'def ' in code and '->' not in code:
-                suggestions.append("🏷️ Consider adding type hints for better code clarity")
+                suggestions.append("[TIP] Consider adding type hints for better code clarity")
             
             # Check for list comprehensions
             if re.search(r'for\s+\w+\s+in.*:\s*\w+\.append\(', code):
-                suggestions.append("🚀 Consider using list comprehensions for more Pythonic code")
+                suggestions.append("TIP: Consider using list comprehensions for more Pythonic code")
             
             # Check for context managers
             if 'open(' in code and 'with ' not in code:
-                suggestions.append("🔒 Use context managers (with statement) for file operations")
+                suggestions.append("[BEST] Use context managers (with statement) for file operations")
             
             # Check for string formatting
             if '% ' in code or '+ ' in code and '"' in code:
-                suggestions.append("💬 Consider using f-strings for cleaner string formatting")
+                suggestions.append("[TIP] Consider using f-strings for cleaner string formatting")
             
             # Performance suggestions
             if 'range(len(' in code:
-                suggestions.append("⚡ Consider using enumerate() instead of range(len())")
+                suggestions.append("[PERF] Consider using enumerate() instead of range(len())")
         
         if not suggestions:
-            return "✨ Code looks well-optimized! No immediate suggestions."
+            return "[OK] Code looks well-optimized! No immediate suggestions."
         
         return "Improvement Suggestions:\n\n" + "\n".join(suggestions)
     
@@ -200,12 +200,12 @@ def read_user_code(filename: str = "") -> str:
             elif os.path.exists(user_cpp_path):
                 filename = "user.cpp"
             else:
-                return f"❌ No code.py or user.cpp found in {root_dir}. Please create one of these files."
+                return f"[ERROR] No code.py or user.cpp found in {root_dir}. Please create one of these files."
         
         file_path = os.path.join(root_dir, filename)
         
         if not os.path.exists(file_path):
-            return f"❌ File '{filename}' not found at {file_path}."
+            return f"[ERROR] File '{filename}' not found at {file_path}."
         
         with open(file_path, 'r', encoding='utf-8') as f:
             code = f.read()
@@ -225,14 +225,14 @@ def list_uploaded_files(input_text: str = "") -> str:
         root_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "code_assist", "temp_files")
         
         if not os.path.exists(root_dir):
-            return "❌ Temp directory not found."
+            return "[ERROR] Temp directory not found."
         
         files = os.listdir(root_dir)
         
         if not files:
-            return "📁 No files uploaded yet."
+            return "[INFO] No files uploaded yet."
         
-        result = f"📁 Files in temp directory ({len(files)} total):\n\n"
+        result = f"[FILES] Files in temp directory ({len(files)} total):\n\n"
         
         for filename in files:
             file_path = os.path.join(root_dir, filename)
@@ -251,13 +251,13 @@ def list_uploaded_files(input_text: str = "") -> str:
 def get_complexity_assessment(complexity: int) -> str:
     """Get assessment based on complexity score."""
     if complexity <= 5:
-        return "✅ Low - Code is simple and easy to maintain"
+        return "[OK] Low - Code is simple and easy to maintain"
     elif complexity <= 10:
-        return "⚠️ Moderate - Consider breaking into smaller functions"
+        return "[WARNING] Moderate - Consider breaking into smaller functions"
     elif complexity <= 20:
-        return "🔴 High - Refactoring recommended"
+        return "[HIGH] High - Refactoring recommended"
     else:
-        return "💥 Very High - Immediate refactoring needed"
+        return "[CRITICAL] Very High - Immediate refactoring needed"
 
 
 def create_code_analysis_tools() -> List[Tool]:

@@ -18,7 +18,7 @@ class ContainerRunner:
             code_path = os.path.join(current_dir, "code.py")
             
             # Write code to file
-            with open(code_path, "w", newline='\n') as f:
+            with open(code_path, "w", encoding='utf-8', newline='\n') as f:
                 f.write(code)
             
             # Run container
@@ -33,12 +33,15 @@ class ContainerRunner:
             )
             
             runtime = time.time() - start_time
-            output = container.decode('utf-8') if container else "No output generated"
+            output = container.decode('utf-8', errors='replace') if container else "No output generated"
+            # Sanitize output to ASCII-safe characters for Windows
+            output = output.encode('ascii', errors='replace').decode('ascii')
             
             return output, runtime
             
         except Exception as e:
-            return f"Error: {str(e)}", 0.0
+            error_msg = str(e).encode('ascii', errors='replace').decode('ascii')
+            return f"Error: {error_msg}", 0.0
 
 
 class CppContainerRunner:
@@ -56,7 +59,7 @@ class CppContainerRunner:
             code_path = os.path.join(current_dir, "user.cpp")
             
             # Write code to file
-            with open(code_path, "w", newline='\n') as f:
+            with open(code_path, "w", encoding='utf-8', newline='\n') as f:
                 f.write(code)
             
             # Run container with compilation and execution
@@ -75,12 +78,15 @@ class CppContainerRunner:
             )
             
             runtime = time.time() - start_time
-            output = container.decode('utf-8') if container else "No output generated"
+            output = container.decode('utf-8', errors='replace') if container else "No output generated"
+            # Sanitize output to ASCII-safe characters for Windows
+            output = output.encode('ascii', errors='replace').decode('ascii')
             
             return output, runtime
             
         except Exception as e:
-            return f"Error: {str(e)}", 0.0
+            error_msg = str(e).encode('ascii', errors='replace').decode('ascii')
+            return f"Error: {error_msg}", 0.0
 
     def compile_only(self, code: str) -> Tuple[str, bool]:
         """
@@ -92,7 +98,7 @@ class CppContainerRunner:
             code_path = os.path.join(current_dir, "user.cpp")
             
             # Write code to file
-            with open(code_path, "w", newline='\n') as f:
+            with open(code_path, "w", encoding='utf-8', newline='\n') as f:
                 f.write(code)
             
             # Run container with compilation only
@@ -110,4 +116,5 @@ class CppContainerRunner:
             return "Compilation successful", True
             
         except Exception as e:
-            return f"Compilation error: {str(e)}", False 
+            error_msg = str(e).encode('ascii', errors='replace').decode('ascii')
+            return f"Compilation error: {error_msg}", False 

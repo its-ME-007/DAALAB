@@ -1,0 +1,57 @@
+INFO:     Started server process [32968]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+[WORKER] Worker initialized: worker-1
+[MONITOR] Resource monitoring: enabled
+[START] Starting worker on 0.0.0.0:8001
+[STARTUP] Worker worker-1 starting up...
+INFO:     127.0.0.1:49424 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58572 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50213 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50259 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58976 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58990 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51395 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49607 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56843 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56854 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59316 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54818 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54840 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54847 - "GET /status HTTP/1.1" 200 OK
+[QUEUE] Received job 6538f23a-aff3-4637-9579-ed4d85d75782 (estimated: 500.0ms)
+INFO:     127.0.0.1:65479 - "POST /execute HTTP/1.1" 200 OK
+D:\DAALAB\worker\worker_server.py:135: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  completed_at=datetime.utcnow()
+D:\DAALAB\worker\worker_server.py:225: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+  return job_results[job_id].dict()
+[EXEC] Executing job 6538f23a-aff3-4637-9579-ed4d85d75782 (python)
+[SUCCESS] Job 6538f23a-aff3-4637-9579-ed4d85d75782 completed in 438.04ms
+INFO:     127.0.0.1:65483 - "GET /job/6538f23a-aff3-4637-9579-ed4d85d75782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65495 - "GET /status HTTP/1.1" 200 OK
+[QUEUE] Received job ecf23129-baf0-4db1-943c-d831f53c9319 (estimated: 500.0ms)
+INFO:     127.0.0.1:54634 - "POST /execute HTTP/1.1" 200 OK
+[EXEC] Executing job ecf23129-baf0-4db1-943c-d831f53c9319 (python)
+[SUCCESS] Job ecf23129-baf0-4db1-943c-d831f53c9319 completed in 374.60ms
+INFO:     127.0.0.1:54636 - "GET /job/ecf23129-baf0-4db1-943c-d831f53c9319 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54643 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55917 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57182 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49886 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59050 - "GET /status HTTP/1.1" 200 OK
+[QUEUE] Received job 7151f1e2-5896-4ce2-a2e0-63958d1b95d3 (estimated: 500.0ms)
+INFO:     127.0.0.1:59056 - "POST /execute HTTP/1.1" 200 OK
+[EXEC] Executing job 7151f1e2-5896-4ce2-a2e0-63958d1b95d3 (cpp)
+[SUCCESS] Job 7151f1e2-5896-4ce2-a2e0-63958d1b95d3 completed in 1076.31ms
+INFO:     127.0.0.1:59063 - "GET /job/7151f1e2-5896-4ce2-a2e0-63958d1b95d3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51661 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50630 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60446 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56162 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53830 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53846 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53859 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53868 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53880 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53892 - "GET /status HTTP/1.1" 200 OK
