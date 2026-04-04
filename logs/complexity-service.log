@@ -9,3 +9,5 @@ INFO:     127.0.0.1:59615 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59619 - "POST /analyze_complexity HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49560 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49572 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65154 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59825 - "GET /health HTTP/1.1" 200 OK

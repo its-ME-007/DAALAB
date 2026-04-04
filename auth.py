@@ -24,7 +24,7 @@ def get_user_id_from_request(request: Request):
     """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
-        print("[ERROR] No Authorization header or invalid format")
+        print("[AUTH] No Authorization header (expected for internal service calls)")
         return None
     
     token = auth_header.split(' ')[1]
