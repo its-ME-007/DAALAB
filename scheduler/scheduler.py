@@ -35,11 +35,14 @@ class Scheduler:
             mode: Scheduling algorithm to use (QUEUE_LENGTH or QUEUE_COST)
         """
         self.mode = mode
+        self._round_robin_counter = 0  # For tie-breaking with equal costs
+        self._worker_load_map = {}  # Tracks estimated load per worker
     
     def select_worker(
         self,
         workers: List[WorkerState],
-        estimated_cost_ms: float
+        estimated_cost_ms: float,
+        worker_load_map: dict = None
     ) -> Optional[Tuple[WorkerState, SchedulingDecision]]:
         """
         Select best worker for executing a job.
@@ -47,12 +50,17 @@ class Scheduler:
         Args:
             workers: List of available worker states
             estimated_cost_ms: Estimated execution cost in milliseconds
+            worker_load_map: Optional map of worker_id -> estimated load (overrides worker-reported state)
         
         Returns:
             Tuple of (selected_worker, scheduling_decision) or None if no workers
         """
         if not workers:
             return None
+        
+        # Use provided load map if available
+        if worker_load_map:
+            self._worker_load_map = worker_load_map
         
         start_time = time.time()
         
@@ -141,24 +149,30 @@ class Scheduler:
             healthy_workers = workers  # Fallback to all workers
         
         # Calculate scores with CPU penalty
-        best_worker = None
-        best_score = float('inf')
+        worker_scores = []
         
         for worker in healthy_workers:
-            score = worker.queue_cost_ms
+            # Use scheduler-tracked load if available, otherwise use worker-reported
+            if self._worker_load_map and worker.worker_id in self._worker_load_map:
+                score = self._worker_load_map[worker.worker_id]
+            else:
+                score = worker.queue_cost_ms
             
             # Apply CPU overload penalty
             if worker.cpu_util is not None and worker.cpu_util > CPU_OVERLOAD_THRESHOLD:
                 score += CPU_PENALTY
             
-            # Select minimum score (tie-break by worker_id)
-            if score < best_score or (score == best_score and (
-                best_worker is None or worker.worker_id < best_worker.worker_id
-            )):
-                best_score = score
-                best_worker = worker
+            worker_scores.append((score, worker))
         
-        selected = best_worker
+        # Find minimum score
+        min_score = min(s[0] for s in worker_scores)
+        
+        # Get all workers with minimum score
+        best_workers = [w for s, w in worker_scores if s == min_score]
+        
+        # Round-robin tie-breaking for equal scores
+        selected = best_workers[self._round_robin_counter % len(best_workers)]
+        self._round_robin_counter += 1
         cpu_penalty_applied = (
             selected.cpu_util is not None and 
             selected.cpu_util > CPU_OVERLOAD_THRESHOLD
@@ -184,7 +198,7 @@ class Scheduler:
             mode: New scheduling mode
         """
         self.mode = mode
-        print(f"🔄 Scheduler mode changed to: {mode.value}")
+        print(f"[MODE] Scheduler mode changed to: {mode.value}")
 
 
 # ============================================================================

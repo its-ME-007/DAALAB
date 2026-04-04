@@ -28,8 +28,18 @@ if (-not (Test-Path $LogDir)) {
 Write-Host ""
 Write-Host "[INFO] Starting services (logs in ./logs/)..." -ForegroundColor Yellow
 
+# Start Complexity Analysis Service (Port 5000) - for Scheduler
+Write-Host "  [1/7] Starting Complexity Analysis Service (Port 5000)..." -ForegroundColor Green
+Start-Process pwsh -ArgumentList @(
+    "-NoExit",
+    "-Command",
+    "`$env:AI_SERVICE_PORT='5000'; python -m code_assist.complexity_service 2>&1 | Tee-Object -FilePath logs/complexity-service.log"
+) -WindowStyle Normal
+
+Start-Sleep -Seconds 3
+
 # Start Worker 1
-Write-Host "  [2/6] Starting Worker 1 (Port 8001)..." -ForegroundColor Green
+Write-Host "  [2/7] Starting Worker 1 (Port 8001)..." -ForegroundColor Green
 Start-Process pwsh -ArgumentList @(
     "-NoExit",
     "-Command",
@@ -39,7 +49,7 @@ Start-Process pwsh -ArgumentList @(
 Start-Sleep -Seconds 2
 
 # Start Worker 2
-Write-Host "  [3/6] Starting Worker 2 (Port 8002)..." -ForegroundColor Green
+Write-Host "  [3/7] Starting Worker 2 (Port 8002)..." -ForegroundColor Green
 Start-Process pwsh -ArgumentList @(
     "-NoExit",
     "-Command",
@@ -49,7 +59,7 @@ Start-Process pwsh -ArgumentList @(
 Start-Sleep -Seconds 3
 
 # Start Scheduler
-Write-Host "  [4/6] Starting Scheduler (Port 8000)..." -ForegroundColor Green
+Write-Host "  [4/7] Starting Scheduler (Port 8000)..." -ForegroundColor Green
 Start-Process pwsh -ArgumentList @(
     "-NoExit",
     "-Command",
@@ -59,7 +69,7 @@ Start-Process pwsh -ArgumentList @(
 Start-Sleep -Seconds 3
 
 # Start Load Balancer
-Write-Host "  [5/6] Starting Load Balancer (Port 8080)..." -ForegroundColor Green
+Write-Host "  [5/7] Starting Load Balancer (Port 8080)..." -ForegroundColor Green
 Start-Process pwsh -ArgumentList @(
     "-NoExit",
     "-Command",
@@ -69,7 +79,7 @@ Start-Process pwsh -ArgumentList @(
 Start-Sleep -Seconds 3
 
 # Start API Server (Frontend Gateway)
-Write-Host "  [6/6] Starting API Server/Frontend Gateway (Port 8010)..." -ForegroundColor Green
+Write-Host "  [6/7] Starting API Server/Frontend Gateway (Port 8010)..." -ForegroundColor Green
 Start-Process pwsh -ArgumentList @(
     "-NoExit",
     "-Command",

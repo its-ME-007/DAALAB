@@ -45,6 +45,7 @@ class JobRequest(BaseModel):
     algorithm_name: Optional[str] = Field(None, description="Algorithm name for tracking")
     input_size: Optional[int] = Field(None, description="Input size for complexity analysis")
     user_id: Optional[str] = Field(None, description="User ID from JWT token")
+    complexity_hint: Optional[Dict[str, Any]] = Field(None, description="Pre-analyzed complexity from api_server")
 
 
 class ComplexityAnalysis(BaseModel):

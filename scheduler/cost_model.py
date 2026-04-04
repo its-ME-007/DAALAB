@@ -50,7 +50,7 @@ def complexity_growth(complexity: str, input_size: int) -> float:
         "O(N^3)": lambda: float(n * n * n),
         "O(N**3)": lambda: float(n * n * n),
         "O(2^N)": lambda: min(2.0 ** min(n, 20), 1e6),  # Cap exponential
-        "O(N!)": lambda: min(math.factorial(min(n, 10)), 1e6),  # Cap factorial
+        "O(N!)": lambda: min(math.factorial(min(n, 7)), 1e6),  # Cap factorial (7! = 5040)
     }
     
     # Find matching complexity

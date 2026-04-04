@@ -565,13 +565,18 @@
             showTypingIndicator();
 
             try {
-                const response = await fetch('http://localhost:8080/ask', {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('http://localhost:8010/api/ai/chat', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: headers,
                     body: JSON.stringify({
-                        question: message,
+                        code: message,
+                        query: message,
                         session_id: getSessionId()
                     })
                 });
@@ -591,7 +596,7 @@
             } catch (error) {
                 hideTypingIndicator();
                 console.error('Error:', error);
-                addMessage('❌ Error: Unable to connect to the AI service. Please make sure the service is running on port 8001.');
+                addMessage('❌ Error: Unable to connect to the AI service. Please make sure the service is running on port 8100.');
             } finally {
                 // Re-enable input
                 sendBtn.disabled = false;
@@ -650,11 +655,18 @@
             // Wait a bit for the file to be processed
             setTimeout(async () => {
                 try {
-                    const response = await fetch('http://localhost:8080/ask', {
+                    const token = localStorage.getItem('token');
+                    const autoHeaders = { 'Content-Type': 'application/json' };
+                    if (token) {
+                        autoHeaders['Authorization'] = `Bearer ${token}`;
+                    }
+
+                    const response = await fetch('http://localhost:8010/api/ai/chat', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: autoHeaders,
                         body: JSON.stringify({
-                            question: "Please use the read_user_code tool to read my code file and give me a brief summary of what the code does.",
+                            code: "Please read my uploaded code.",
+                            query: "Please read my code file and give me a brief summary of what the code does.",
                             session_id: getSessionId()
                         })
                     });
@@ -669,7 +681,7 @@
                     }
                 } catch (error) {
                     console.log('Auto-load skipped:', error);
-                    addMessage('⚠️ Could not connect to AI service. Make sure it\'s running on port 8001.', false);
+                    addMessage('✅ Ready to chat! No earlier code files found, but you can paste code or ask questions.', false);
                 }
             }, 1000);
         });

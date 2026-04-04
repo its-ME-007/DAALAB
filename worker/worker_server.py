@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from typing import Dict
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+import asyncio
 
 from worker.container_runner import ContainerRunner, CppContainerRunner
 from worker.worker_state import WorkerState
@@ -43,6 +44,16 @@ worker_state = WorkerState(
     worker_id=WORKER_ID,
     enable_resource_monitoring=ENABLE_RESOURCE_MONITORING
 )
+
+# Container runners
+python_runner = ContainerRunner()
+cpp_runner = CppContainerRunner()
+
+# Job storage
+job_results: Dict[str, ExecutionResult] = {}
+
+# Job execution lock (prevent concurrent executions)
+execution_lock = asyncio.Lock()
 
 # Initialize container runners
 python_runner = ContainerRunner()
@@ -97,68 +108,72 @@ app.add_middleware(
 
 async def execute_job(request: ExecutionRequest):
     """
-    Execute a job in the background.
+    Execute a job with locking to prevent concurrent executions.
     
-    This function runs asynchronously to avoid blocking the API.
+    This function runs asynchronously and ensures only one job executes at a time.
     """
     job_id = request.job_id
+    estimated_cost_ms = request.estimated_cost_ms
     
-    try:
-        print(f"[EXEC] Executing job {job_id} ({request.language.value})")
+    # Acquire lock to prevent concurrent executions
+    async with execution_lock:
+        try:
+            print(f"[EXEC] Executing job {job_id} ({request.language.value})")
+            
+            # Start execution
+            start_time = time.time()
+            
+            # Select appropriate runner
+            if request.language == Language.PYTHON:
+                output, runtime = python_runner.run_code(request.code)
+            elif request.language == Language.CPP:
+                output, runtime = cpp_runner.run_code(request.code)
+            else:
+                raise ValueError(f"Unsupported language: {request.language}")
+            
+            actual_runtime_ms = runtime * 1000  # Convert to ms
+            
+            # Check if execution succeeded
+            success = not output.startswith("Error:")
+            error = output if not success else None
+            
+            # Create result
+            result = ExecutionResult(
+                job_id=job_id,
+                success=success,
+                output=output if success else "",
+                error=error,
+                actual_runtime_ms=actual_runtime_ms,
+                exit_code=0 if success else 1,
+                worker_id=WORKER_ID,
+                completed_at=datetime.now(timezone.utc)
+            )
+            
+            # Store result
+            job_results[job_id] = result
+            
+            print(f"[SUCCESS] Job {job_id} completed in {actual_runtime_ms:.2f}ms")
+            
+        except Exception as e:
+            print(f"[ERROR] Job {job_id} failed: {e}")
+            
+            # Store error result
+            result = ExecutionResult(
+                job_id=job_id,
+                success=False,
+                output="",
+                error=str(e),
+                actual_runtime_ms=0.0,
+                exit_code=1,
+                worker_id=WORKER_ID,
+                completed_at=datetime.now(timezone.utc)
+            )
+            job_results[job_id] = result
         
-        # Start execution
-        start_time = time.time()
-        
-        # Select appropriate runner
-        if request.language == Language.PYTHON:
-            output, runtime = python_runner.run_code(request.code)
-        elif request.language == Language.CPP:
-            output, runtime = cpp_runner.run_code(request.code)
-        else:
-            raise ValueError(f"Unsupported language: {request.language}")
-        
-        actual_runtime_ms = runtime * 1000  # Convert to ms
-        
-        # Check if execution succeeded
-        success = not output.startswith("Error:")
-        error = output if not success else None
-        
-        # Create result
-        result = ExecutionResult(
-            job_id=job_id,
-            success=success,
-            output=output if success else "",
-            error=error,
-            actual_runtime_ms=actual_runtime_ms,
-            exit_code=0 if success else 1,
-            worker_id=WORKER_ID,
-            completed_at=datetime.utcnow()
-        )
-        
-        # Store result
-        job_results[job_id] = result
-        
-        print(f"[SUCCESS] Job {job_id} completed in {actual_runtime_ms:.2f}ms")
-        
-    except Exception as e:
-        print(f"[ERROR] Job {job_id} failed: {e}")
-        
-        # Store error result
-        result = ExecutionResult(
-            job_id=job_id,
-            success=False,
-            output="",
-            error=str(e),
-            actual_runtime_ms=0.0,
-            exit_code=1,
-            worker_id=WORKER_ID,
-            completed_at=datetime.utcnow()
-        )
-        job_results[job_id] = result
-    
-    finally:
-        # Decrement queue cost
-        worker_state.decrement_queue_cost(request.estimated_cost_ms)
+        finally:
+            # Decrement queue cost (this also decrements active jobs)
+            worker_state.decrement_queue_cost(estimated_cost_ms)
+            worker_state.update_heartbeat()
 
 
 # ============================================================================
@@ -222,7 +237,7 @@ async def get_job_result(job_id: str):
         ExecutionResult if job is complete, or status if still running
     """
     if job_id in job_results:
-        return job_results[job_id].dict()
+        return job_results[job_id].model_dump()
     
     # Job not found in results - might still be running
     current_state = worker_state.get_state()

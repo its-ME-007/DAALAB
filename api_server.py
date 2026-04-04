@@ -172,6 +172,12 @@ async def submit_code_to_ai(auth_request: Request):
         if not result.data:
             return {"success": False, "message": "No code files found"}
         
+        # Get AI service URL from environment or use first worker URL as fallback
+        ai_service_url = os.getenv("AI_SERVICE_URL")
+        if not ai_service_url:
+            worker_urls = os.getenv("WORKER_URLS", "http://localhost:8001")
+            ai_service_url = worker_urls.split(",")[0].strip()
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             for file_record in result.data:
                 upload_data = {
@@ -179,7 +185,7 @@ async def submit_code_to_ai(auth_request: Request):
                     'code': file_record['code_content']
                 }
                 response = await client.post(
-                    "http://localhost:8001/upload",
+                    f"{ai_service_url}/upload",
                     json=upload_data
                 )
                 if response.status_code != 200:
@@ -301,16 +307,7 @@ async def run_code(auth_request: Request, request: CodeRequest):
             except Exception as db_error:
                 print(f"Database save warning: {db_error}")
         
-        # Step 2: Analyze complexity using Mistral
-        complexity_result = None
-        try:
-            analyzer = ComplexityAnalyzer()
-            complexity_result = analyzer.analyze_code(request.code, "python")
-            print(f"[COMPLEXITY] {complexity_result.get('time_complexity')} - {complexity_result.get('algorithm_name')}")
-        except Exception as complexity_error:
-            print(f"Complexity analysis warning: {complexity_error}")
-        
-        # Step 3: Forward to load balancer -> scheduler -> worker
+        # Step 2: Forward to load balancer -> scheduler -> worker (scheduler will analyze complexity)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{LOAD_BALANCER_URL}/api/run-code",
@@ -318,7 +315,8 @@ async def run_code(auth_request: Request, request: CodeRequest):
                     "code": request.code,
                     "language": "python",
                     "user_id": user_id,
-                    "complexity_hint": complexity_result  # Pass complexity to scheduler
+                    "algorithm_name": request.algorithm_name,
+                    "input_size": request.input_size
                 }
             )
             
@@ -399,24 +397,16 @@ async def run_cpp_code(auth_request: Request, request: CodeRequest):
             except Exception as db_error:
                 print(f"Database save warning: {db_error}")
         
-        # Step 2: Analyze complexity using Mistral
-        complexity_result = None
-        try:
-            analyzer = ComplexityAnalyzer()
-            complexity_result = analyzer.analyze_code(request.code, "cpp")
-            print(f"[COMPLEXITY] {complexity_result.get('time_complexity')} - {complexity_result.get('algorithm_name')}")
-        except Exception as complexity_error:
-            print(f"Complexity analysis warning: {complexity_error}")
-        
-        # Step 3: Forward to load balancer -> scheduler -> worker
+        # Step 2: Forward to load balancer -> scheduler -> worker (scheduler will analyze complexity)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{LOAD_BALANCER_URL}/api/run-code",
+                f"{LOAD_BALANCER_URL}/api/run-cpp",
                 json={
                     "code": request.code,
                     "language": "cpp",
                     "user_id": user_id,
-                    "complexity_hint": complexity_result  # Pass complexity to scheduler
+                    "algorithm_name": request.algorithm_name,
+                    "input_size": request.input_size
                 }
             )
             

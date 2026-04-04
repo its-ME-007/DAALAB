@@ -34,11 +34,12 @@ class WorkerRegistry:
                         variable WORKER_URLS (comma-separated)
         """
         if worker_urls is None:
-            worker_urls_str = os.getenv("WORKER_URLS", "http://localhost:8001")
+            worker_urls_str = os.getenv("WORKER_URLS", "http://localhost:8001,http://localhost:8002")
             worker_urls = [url.strip() for url in worker_urls_str.split(",")]
         
         self.worker_urls = worker_urls
         self._state_cache: Dict[str, tuple[WorkerState, datetime]] = {}
+        self._worker_id_to_url: Dict[str, str] = {}  # Maps worker_id -> worker_url
         self._http_client: Optional[httpx.AsyncClient] = None
     
     async def _get_http_client(self) -> httpx.AsyncClient:
@@ -104,13 +105,46 @@ class WorkerRegistry:
         if tasks:
             fetched_states = await asyncio.gather(*tasks, return_exceptions=True)
             
-            for worker_url, state in zip(self.worker_urls, fetched_states):
-                if isinstance(state, WorkerState):
-                    # Update cache
-                    self._state_cache[worker_url] = (state, now)
-                    states.append(state)
+            # Track which workers we attempted to fetch
+            fetch_index = 0
+            for worker_url in self.worker_urls:
+                # Skip workers that were served from cache
+                if use_cache and worker_url in self._state_cache:
+                    cached_state, cached_at = self._state_cache[worker_url]
+                    age = (now - cached_at).total_seconds()
+                    if age < WORKER_STATE_CACHE_TTL:
+                        continue
+                
+                # Process fetched result
+                if fetch_index < len(fetched_states):
+                    state = fetched_states[fetch_index]
+                    fetch_index += 1
+                    
+                    if isinstance(state, WorkerState):
+                        # Update cache with fresh state
+                        self._state_cache[worker_url] = (state, now)
+                        # Update worker_id to URL mapping
+                        self._worker_id_to_url[state.worker_id] = worker_url
+                        states.append(state)
+                    else:
+                        # Remove failed worker from cache
+                        if worker_url in self._state_cache:
+                            del self._state_cache[worker_url]
+                            print(f"[CACHE] Invalidated cache for failed worker: {worker_url}")
         
         return states
+    
+    def get_worker_url_by_id(self, worker_id: str) -> Optional[str]:
+        """
+        Get worker URL from worker ID using the registry's discovered mapping.
+        
+        Args:
+            worker_id: Worker identifier (e.g., "worker-1", "worker-2")
+        
+        Returns:
+            Worker URL or None if worker_id not found in registry
+        """
+        return self._worker_id_to_url.get(worker_id)
     
     async def check_worker_health(self, worker_url: str) -> bool:
         """

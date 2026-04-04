@@ -12,6 +12,7 @@ This service:
 import os
 import uuid
 import httpx
+import asyncio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -70,9 +71,18 @@ worker_registry = get_worker_registry()
 # Job tracking (in-memory, should be Redis/DB in production)
 job_metadata: Dict[str, dict] = {}
 
+# Job assignment map: tracks which jobs are assigned to which workers
+# Format: {job_id: {worker_id, estimated_cost_ms, assigned_at}}
+job_assignments: Dict[str, dict] = {}
+
+# Worker load map: tracks current estimated load per worker
+# Format: {worker_id: total_estimated_cost_ms}
+worker_load_map: Dict[str, float] = {}
+
 print(f"[SCHEDULER] Scheduler initialized with mode: {SCHEDULING_MODE.value}")
 print(f"[AI] AI service: {AI_SERVICE_URL}")
 print(f"[WORKERS] Worker registry: {worker_registry}")
+print(f"[TRACKING] Job assignment tracking enabled")
 
 
 # ============================================================================
@@ -131,7 +141,7 @@ async def handle_job_request(job: JobRequest) -> JobResponse:
     """
     job_id = str(uuid.uuid4())
     
-    # Step 1: Analyze complexity
+    # Step 1: Analyze complexity via AI service
     print(f"[ANALYSIS] Analyzing complexity for job {job_id}")
     complexity_analysis = await analyze_code_complexity(job.code, job.language.value)
     
@@ -150,15 +160,32 @@ async def handle_job_request(job: JobRequest) -> JobResponse:
     if not workers:
         raise HTTPException(status_code=503, detail="No workers available")
     
-    # Step 4: Select worker
-    result = scheduler.select_worker(workers, estimated_cost_ms)
+    # Update worker load map with in-flight jobs
+    # This prevents race conditions when multiple jobs arrive simultaneously
+    for worker in workers:
+        if worker.worker_id not in worker_load_map:
+            worker_load_map[worker.worker_id] = 0.0
+    
+    # Step 4: Select worker using scheduler-tracked load map
+    result = scheduler.select_worker(workers, estimated_cost_ms, worker_load_map)
     
     if not result:
         raise HTTPException(status_code=503, detail="Worker selection failed")
     
     selected_worker, decision = result
     
+    # Record job assignment in tracking map
+    job_assignments[job_id] = {
+        "worker_id": selected_worker.worker_id,
+        "estimated_cost_ms": estimated_cost_ms,
+        "assigned_at": datetime.now(timezone.utc)
+    }
+    
+    # Update worker load map (increment)
+    worker_load_map[selected_worker.worker_id] = worker_load_map.get(selected_worker.worker_id, 0.0) + estimated_cost_ms
+    
     print(f"[WORKER] Selected worker: {selected_worker.worker_id}")
+    print(f"[LOAD] Worker {selected_worker.worker_id} load: {worker_load_map[selected_worker.worker_id]:.0f}ms")
     print(f"[INFO] {decision.reasoning}")
     
     # Step 5: Dispatch job
@@ -172,22 +199,14 @@ async def handle_job_request(job: JobRequest) -> JobResponse:
         input_size=job.input_size
     )
     
-    # Get worker URL from registry
-    worker_url = None
-    for url in worker_registry.worker_urls:
-        if selected_worker.worker_id in url or url.endswith(str(selected_worker.worker_id)):
-            worker_url = url
-            break
-    
-    if not worker_url:
-        # Fallback - construct URL from worker_id
-        worker_url = f"http://localhost:8001"  # Default for development
+    # Get worker URL using simple mapping
+    worker_url = get_worker_url(selected_worker.worker_id)
     
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{worker_url}/execute",
-                json=execution_request.dict()
+                json=execution_request.model_dump()
             )
             response.raise_for_status()
     
@@ -201,12 +220,15 @@ async def handle_job_request(job: JobRequest) -> JobResponse:
     job_metadata[job_id] = {
         "job_id": job_id,
         "status": JobStatus.QUEUED,
-        "submitted_at": datetime.utcnow(),
-        "complexity_analysis": complexity_analysis.dict() if complexity_analysis else None,
+        "submitted_at": datetime.now(timezone.utc),
+        "complexity_analysis": complexity_analysis.model_dump() if complexity_analysis else None,
         "estimated_cost_ms": estimated_cost_ms,
         "selected_worker_id": selected_worker.worker_id,
-        "scheduling_decision": decision.dict()
+        "scheduling_decision": decision.model_dump()
     }
+    
+    # Note: Job cleanup happens when client queries job status and finds it completed
+    # See cleanup_completed_job() function below
     
     # Return response
     return JobResponse(
@@ -216,6 +238,52 @@ async def handle_job_request(job: JobRequest) -> JobResponse:
         estimated_wait_time_ms=selected_worker.queue_cost_ms,
         selected_worker_id=selected_worker.worker_id
     )
+
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def get_worker_url(worker_id: str) -> str:
+    """Get worker URL from worker ID using registry lookup.
+    
+    Args:
+        worker_id: Worker identifier (e.g., "worker-1", "worker-2")
+    
+    Returns:
+        Worker URL (e.g., "http://localhost:8001")
+    
+    Raises:
+        ValueError: If worker_id not found in registry
+    """
+    url = worker_registry.get_worker_url_by_id(worker_id)
+    if url is None:
+        raise ValueError(f"Worker {worker_id} not found in registry")
+    return url
+
+
+# ============================================================================
+# Job Cleanup Helpers
+# ============================================================================
+
+def cleanup_completed_job(job_id: str):
+    """
+    Clean up job from assignment map and update worker load map.
+    
+    Called when a job is found to be completed.
+    """
+    if job_id in job_assignments:
+        assignment = job_assignments[job_id]
+        worker_id = assignment["worker_id"]
+        estimated_cost_ms = assignment["estimated_cost_ms"]
+        
+        # Decrement worker load
+        if worker_id in worker_load_map:
+            worker_load_map[worker_id] = max(0, worker_load_map[worker_id] - estimated_cost_ms)
+            print(f"[CLEANUP] Job {job_id} completed, worker {worker_id} load: {worker_load_map[worker_id]:.0f}ms")
+        
+        # Remove from assignment map
+        del job_assignments[job_id]
 
 
 # ============================================================================
@@ -263,7 +331,7 @@ async def run_code_sync(auth_request: Request, job: JobRequest):
         # Get result from worker
         metadata = job_metadata.get(job_id)
         if metadata:
-            worker_url = f"http://localhost:8001"  # Simplification for MVP
+            worker_url = get_worker_url(metadata["selected_worker_id"])
             
             try:
                 async with httpx.AsyncClient() as client:
@@ -273,7 +341,10 @@ async def run_code_sync(auth_request: Request, job: JobRequest):
                         result = response.json()
                         
                         if result.get("status") != "running":
-                            # Job complete
+                            # Job complete - cleanup assignment
+                            cleanup_completed_job(job_id)
+                            
+                            # Return result
                             return CodeResponse(
                                 output=result.get("output", ""),
                                 runtime=result.get("actual_runtime_ms", 0) / 1000.0,
@@ -300,7 +371,7 @@ async def get_job_status(job_id: str):
     metadata = job_metadata[job_id]
     
     # Try to get result from worker
-    worker_url = f"http://localhost:8001"  # Simplification
+    worker_url = get_worker_url(metadata["selected_worker_id"])
     
     try:
         async with httpx.AsyncClient() as client:
@@ -311,6 +382,9 @@ async def get_job_status(job_id: str):
                 
                 from common.models import ExecutionResult
                 result = ExecutionResult(**result_data)
+                
+                # Cleanup completed job from assignment map
+                cleanup_completed_job(job_id)
                 
                 return JobStatusResponse(
                     job_id=job_id,
@@ -332,19 +406,35 @@ async def get_job_status(job_id: str):
 
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint."""
-    workers = await worker_registry.fetch_all_worker_states()
+    """Health check endpoint.
     
+    IMPORTANT: This must be lightweight and return immediately.
+    Do NOT make HTTP calls to workers here - the load balancer polls this
+    endpoint with a short timeout (3s). If this hangs, the LB marks the
+    scheduler as unhealthy and returns 503 for ALL requests.
+    """
     return HealthResponse(
         status="healthy",
         service="Scheduler",
         timestamp=datetime.now(timezone.utc),
         details={
             "scheduling_mode": SCHEDULING_MODE.value,
-            "workers_available": len(workers),
-            "jobs_tracked": len(job_metadata)
+            "workers_registered": len(worker_registry.worker_urls),
+            "workers_cached": len(worker_registry._state_cache),
+            "jobs_tracked": len(job_metadata),
+            "active_assignments": len(job_assignments)
         }
     )
+
+
+@app.get("/api/scheduler/assignments")
+async def get_job_assignments():
+    """Debug endpoint: view current job assignments and worker loads."""
+    return {
+        "job_assignments": job_assignments,
+        "worker_load_map": worker_load_map,
+        "total_jobs": len(job_metadata)
+    }
 
 
 @app.get("/api/scheduler/mode")
@@ -362,6 +452,50 @@ async def set_scheduler_mode(mode: str):
         return {"mode": new_mode.value, "message": "Scheduling mode updated"}
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid mode: {mode}")
+
+
+# ============================================================================
+# Background Tasks
+# ============================================================================
+
+async def cleanup_abandoned_jobs():
+    """Background task to clean up abandoned jobs and reconcile worker load map."""
+    while True:
+        await asyncio.sleep(60)  # Run every 60 seconds
+        
+        try:
+            now = datetime.now(timezone.utc)
+            abandoned_jobs = []
+            
+            # Find jobs assigned more than 5 minutes ago
+            for job_id, assignment in list(job_assignments.items()):
+                assigned_at = assignment.get("assigned_at")
+                if assigned_at:
+                    age = (now - assigned_at).total_seconds()
+                    if age > 300:  # 5 minutes
+                        abandoned_jobs.append(job_id)
+            
+            # Clean up abandoned jobs
+            for job_id in abandoned_jobs:
+                print(f"[CLEANUP] Removing abandoned job {job_id}")
+                cleanup_completed_job(job_id)
+            
+            if abandoned_jobs:
+                print(f"[CLEANUP] Cleaned up {len(abandoned_jobs)} abandoned jobs")
+        
+        except Exception as e:
+            print(f"[ERROR] Cleanup task error: {e}")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize scheduler on startup."""
+    print("[OK] Scheduler server started")
+    print(f"[WORKERS] Worker registry: {worker_registry}")
+    
+    # Start background cleanup task
+    asyncio.create_task(cleanup_abandoned_jobs())
+    print("[OK] Background cleanup task started")
 
 
 @app.get("/")
