@@ -59,7 +59,7 @@ app.add_middleware(
 # Configuration
 # ============================================================================
 
-AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:5000")
+AI_SERVICE_URL = os.getenv("COMPLEXITY_SERVICE_URL", "http://localhost:5000")
 SCHEDULING_MODE = SchedulingMode(os.getenv("SCHEDULING_MODE", "queue_cost"))
 
 # Initialize scheduler

@@ -565,18 +565,13 @@
             showTypingIndicator();
 
             try {
-                const token = localStorage.getItem('token');
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
                 const response = await fetch('http://localhost:8010/api/ai/chat', {
                     method: 'POST',
-                    headers: headers,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
-                        code: message,
-                        query: message,
+                        question: message,
                         session_id: getSessionId()
                     })
                 });
@@ -655,18 +650,11 @@
             // Wait a bit for the file to be processed
             setTimeout(async () => {
                 try {
-                    const token = localStorage.getItem('token');
-                    const autoHeaders = { 'Content-Type': 'application/json' };
-                    if (token) {
-                        autoHeaders['Authorization'] = `Bearer ${token}`;
-                    }
-
-                    const response = await fetch('http://localhost:8010/api/ai/chat', {
+                    const response = await fetch('http://localhost:8080/ask', {
                         method: 'POST',
-                        headers: autoHeaders,
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            code: "Please read my uploaded code.",
-                            query: "Please read my code file and give me a brief summary of what the code does.",
+                            question: "Please use the read_user_code tool to read my code file and give me a brief summary of what the code does.",
                             session_id: getSessionId()
                         })
                     });

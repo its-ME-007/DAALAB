@@ -23,7 +23,7 @@ langchain-community>=0.0.20
 langchain-classic  # For legacy AgentExecutor support
 
 # HTTP client for microservice communication
-httpx>=0.24.0
+httpx>=0.24.0,<0.28.0  # groq SDK passes 'proxies' which was removed in httpx 0.28
 requests
 
 # Code execution dependencies
