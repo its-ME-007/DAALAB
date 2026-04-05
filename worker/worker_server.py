@@ -49,15 +49,8 @@ worker_state = WorkerState(
 python_runner = ContainerRunner()
 cpp_runner = CppContainerRunner()
 
-# Job storage
-job_results: Dict[str, ExecutionResult] = {}
-
 # Job execution lock (prevent concurrent executions)
 execution_lock = asyncio.Lock()
-
-# Initialize container runners
-python_runner = ContainerRunner()
-cpp_runner = CppContainerRunner()
 
 # Job results storage (in-memory, should be replaced with DB/Redis in production)
 job_results: Dict[str, ExecutionResult] = {}

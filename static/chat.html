@@ -565,13 +565,16 @@
             showTypingIndicator();
 
             try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
                 const response = await fetch('http://localhost:8010/api/ai/chat', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: headers,
                     body: JSON.stringify({
-                        question: message,
+                        code: message,
+                        query: message,
                         session_id: getSessionId()
                     })
                 });
@@ -650,11 +653,16 @@
             // Wait a bit for the file to be processed
             setTimeout(async () => {
                 try {
-                    const response = await fetch('http://localhost:8080/ask', {
+                    const autoToken = localStorage.getItem('token');
+                    const autoHeaders = { 'Content-Type': 'application/json' };
+                    if (autoToken) autoHeaders['Authorization'] = `Bearer ${autoToken}`;
+
+                    const response = await fetch('http://localhost:8010/api/ai/chat', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: autoHeaders,
                         body: JSON.stringify({
-                            question: "Please use the read_user_code tool to read my code file and give me a brief summary of what the code does.",
+                            code: "Please read my uploaded code.",
+                            query: "Please read my code file and give me a brief summary of what the code does.",
                             session_id: getSessionId()
                         })
                     });

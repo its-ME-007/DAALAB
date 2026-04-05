@@ -88,6 +88,16 @@ Start-Process pwsh -ArgumentList @(
 
 Start-Sleep -Seconds 3
 
+# Start AI Code Helper Service (Port 8100)
+Write-Host "  [7/7] Starting AI Code Helper (Port 8100)..." -ForegroundColor Green
+Start-Process pwsh -ArgumentList @(
+    "-NoExit",
+    "-Command",
+    "python -m uvicorn code_assist.main:app --host 127.0.0.1 --port 8100 --reload 2>&1 | Tee-Object -FilePath logs/ai-service.log"
+) -WindowStyle Normal
+
+Start-Sleep -Seconds 3
+
 Write-Host ""
 Write-Host "[SUCCESS] All services started!" -ForegroundColor Green
 Write-Host "=" * 70
@@ -102,7 +112,8 @@ $services = @(
     @{Name="Worker 2"; URL="http://localhost:8002/health"},
     @{Name="Scheduler"; URL="http://localhost:8000/api/health"},
     @{Name="Load Balancer"; URL="http://localhost:8080/lb/health"},
-    @{Name="API Server"; URL="http://localhost:8010/api/auth/health"}
+    @{Name="API Server"; URL="http://localhost:8010/api/auth/health"},
+    @{Name="AI Code Helper"; URL="http://localhost:8100/health"}
 )
 
 foreach ($service in $services) {
@@ -116,11 +127,12 @@ foreach ($service in $services) {
 
 Write-Host ""
 Write-Host "[SERVICES] Service URLs:" -ForegroundColor Cyan
-Write-Host "  Frontend:      http://localhost:8010 (API Server + UI)" -ForegroundColor White
-Write-Host "  Load Balancer: http://localhost:8080" -ForegroundColor White
-Write-Host "  Scheduler:     http://localhost:8000" -ForegroundColor White
-Write-Host "  Worker 1:      http://localhost:8001" -ForegroundColor White
-Write-Host "  Worker 2:      http://localhost:8002" -ForegroundColor White
+Write-Host "  Frontend:        http://localhost:8010 (API Server + UI)" -ForegroundColor White
+Write-Host "  Load Balancer:   http://localhost:8080" -ForegroundColor White
+Write-Host "  Scheduler:       http://localhost:8000" -ForegroundColor White
+Write-Host "  Worker 1:        http://localhost:8001" -ForegroundColor White
+Write-Host "  Worker 2:        http://localhost:8002" -ForegroundColor White
+Write-Host "  AI Code Helper:  http://localhost:8100" -ForegroundColor White
 Write-Host ""
 Write-Host "[DOCS] Documentation:" -ForegroundColor Cyan
 Write-Host "  README:        SCHEDULER_WORKER_README.md" -ForegroundColor White

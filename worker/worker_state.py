@@ -80,12 +80,13 @@ class WorkerState:
         
         Returns:
             WorkerStateModel with current state
+            
+        Note: CPU/memory utilization is updated by the background monitoring 
+        thread every 5 seconds. We do NOT call _update_resource_utilization()
+        here because psutil.cpu_percent(interval=0.1) blocks for 100ms,
+        which would block the async event loop on every /status request.
         """
         with self._lock:
-            # Update resource utilization if monitoring enabled
-            if self.enable_resource_monitoring:
-                self._update_resource_utilization()
-            
             return WorkerStateModel(
                 worker_id=self.worker_id,
                 queue_cost_ms=self._queue_cost_ms,

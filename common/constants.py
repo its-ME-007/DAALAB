@@ -46,7 +46,7 @@ MAX_CONCURRENT_JOBS = 10
 WORKER_HEALTH_TIMEOUT = 3.0
 
 # Worker state cache TTL (seconds)
-WORKER_STATE_CACHE_TTL = 30.0
+WORKER_STATE_CACHE_TTL = 3.0
 
 # Docker execution timeout (seconds)
 DOCKER_EXECUTION_TIMEOUT = 30.0

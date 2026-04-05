@@ -400,7 +400,7 @@ async def run_cpp_code(auth_request: Request, request: CodeRequest):
         # Step 2: Forward to load balancer -> scheduler -> worker (scheduler will analyze complexity)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{LOAD_BALANCER_URL}/api/run-cpp",
+                f"{LOAD_BALANCER_URL}/api/run-code",
                 json={
                     "code": request.code,
                     "language": "cpp",
