@@ -1,0 +1,15 @@
+INFO:     Started server process [21124]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+[WORKER] Worker initialized: worker-1
+[MONITOR] Resource monitoring: enabled
+[START] Starting worker on 0.0.0.0:8001
+[STARTUP] Worker worker-1 starting up...
+INFO:     127.0.0.1:50726 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51080 - "GET /status HTTP/1.1" 200 OK
+[QUEUE] Received job 5fe87904-1f2b-40b5-847e-5021e9535050 (estimated: 300000.0ms)
+INFO:     127.0.0.1:51082 - "POST /execute HTTP/1.1" 200 OK
+[EXEC] Executing job 5fe87904-1f2b-40b5-847e-5021e9535050 (python)
+[SUCCESS] Job 5fe87904-1f2b-40b5-847e-5021e9535050 completed in 1782.33ms
+INFO:     127.0.0.1:51087 - "GET /job/5fe87904-1f2b-40b5-847e-5021e9535050 HTTP/1.1" 200 OK

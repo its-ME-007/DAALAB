@@ -1,0 +1,8 @@
+INFO:     Started server process [12240]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5000 (Press CTRL+C to quit)
+[COMPLEXITY] Starting Complexity Analysis Service on port 5000
+[COMPLEXITY] Purpose: Scheduler routing estimation
+[COMPLEXITY] Isolated from main AI agent for performance
+INFO:     127.0.0.1:51075 - "POST /analyze_complexity HTTP/1.1" 200 OK
