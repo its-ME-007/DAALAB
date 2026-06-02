@@ -9,3 +9,4 @@ code
 venv/
 code_assist/.env
 code_assist/__pycache__/
+.claude
