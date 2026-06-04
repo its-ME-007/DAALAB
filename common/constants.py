@@ -1,5 +1,7 @@
 """Shared constants across all services."""
 
+import os
+
 # ============================================================================
 # Scheduling Constants
 # ============================================================================
@@ -43,8 +45,9 @@ COMPLEXITY_BASE_COST = {
 # Worker Configuration
 # ============================================================================
 
-# Maximum concurrent jobs per worker
-MAX_CONCURRENT_JOBS = 10
+# Maximum concurrent jobs per worker (env-overridable so it can be swept as an
+# experiment knob without code changes; consumed by the worker semaphore).
+MAX_CONCURRENT_JOBS = int(os.getenv("MAX_CONCURRENT_JOBS", "10"))
 
 # Worker health check timeout (seconds)
 WORKER_HEALTH_TIMEOUT = 3.0

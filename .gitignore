@@ -10,3 +10,9 @@ venv/
 code_assist/.env
 code_assist/__pycache__/
 .claude
+
+# Evaluation experiment outputs (CSVs, locust reports, worker stats)
+results/
+
+# Runtime logs (regenerated on each launch)
+logs/

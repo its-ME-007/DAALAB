@@ -8,6 +8,7 @@ This dual implementation enables comparative evaluation for research.
 """
 
 import time
+import random
 from typing import List, Optional, Tuple
 from common.models import (
     WorkerState,
@@ -27,16 +28,24 @@ class Scheduler:
     algorithms for comparative evaluation.
     """
     
-    def __init__(self, mode: SchedulingMode = SchedulingMode.QUEUE_COST):
+    def __init__(
+        self,
+        mode: SchedulingMode = SchedulingMode.QUEUE_COST,
+        seed: Optional[int] = None,
+    ):
         """
         Initialize scheduler.
-        
+
         Args:
-            mode: Scheduling algorithm to use (QUEUE_LENGTH or QUEUE_COST)
+            mode: Scheduling algorithm to use (QUEUE_LENGTH, QUEUE_COST, RANDOM,
+                  or ROUND_ROBIN)
+            seed: Optional RNG seed for reproducible RANDOM scheduling (and any
+                  future stochastic policies). None uses process-global randomness.
         """
         self.mode = mode
         self._round_robin_counter = 0  # For tie-breaking with equal costs
         self._worker_load_map = {}  # Tracks estimated load per worker
+        self._rng = random.Random(seed)  # Reproducible RNG for RANDOM mode
     
     def select_worker(
         self,
@@ -67,6 +76,10 @@ class Scheduler:
         # Dispatch to appropriate algorithm
         if self.mode == SchedulingMode.QUEUE_LENGTH:
             selected_worker, reasoning = self._select_by_queue_length(workers)
+        elif self.mode == SchedulingMode.RANDOM:
+            selected_worker, reasoning = self._select_random(workers)
+        elif self.mode == SchedulingMode.ROUND_ROBIN:
+            selected_worker, reasoning = self._select_round_robin(workers)
         else:  # QUEUE_COST
             selected_worker, reasoning = self._select_by_queue_cost(
                 workers, estimated_cost_ms
@@ -120,6 +133,62 @@ class Scheduler:
         
         return selected, reasoning
     
+    def _select_random(
+        self,
+        workers: List[WorkerState]
+    ) -> Tuple[WorkerState, str]:
+        """
+        Baseline algorithm: Select a uniformly random healthy worker.
+
+        Load-oblivious; useful as a lower-bound comparator. Reproducible when the
+        scheduler is constructed with a fixed seed.
+
+        Args:
+            workers: List of available worker states
+
+        Returns:
+            Tuple of (selected_worker, reasoning_string)
+        """
+        healthy_workers = [w for w in workers if w.is_healthy] or workers
+
+        selected = self._rng.choice(healthy_workers)
+
+        reasoning = (
+            f"Baseline (random): Selected {selected.worker_id} uniformly at random "
+            f"among {len(healthy_workers)} healthy workers"
+        )
+
+        return selected, reasoning
+
+    def _select_round_robin(
+        self,
+        workers: List[WorkerState]
+    ) -> Tuple[WorkerState, str]:
+        """
+        Baseline algorithm: Cyclic selection, ignoring all load signals.
+
+        Workers are ordered deterministically by worker_id so the cycle is stable
+        across calls regardless of worker reporting order.
+
+        Args:
+            workers: List of available worker states
+
+        Returns:
+            Tuple of (selected_worker, reasoning_string)
+        """
+        healthy_workers = [w for w in workers if w.is_healthy] or workers
+        ordered = sorted(healthy_workers, key=lambda w: w.worker_id)
+
+        selected = ordered[self._round_robin_counter % len(ordered)]
+        self._round_robin_counter += 1
+
+        reasoning = (
+            f"Baseline (round-robin): Selected {selected.worker_id} "
+            f"(cyclic over {len(ordered)} healthy workers)"
+        )
+
+        return selected, reasoning
+
     def _select_by_queue_cost(
         self,
         workers: List[WorkerState],

@@ -138,6 +138,8 @@ class SchedulingMode(str, Enum):
     """Scheduling algorithm selection."""
     QUEUE_LENGTH = "queue_length"  # Baseline: Select by active_jobs count
     QUEUE_COST = "queue_cost"      # Proposed: Select by estimated cost
+    RANDOM = "random"              # Baseline: uniform random healthy worker
+    ROUND_ROBIN = "round_robin"    # Baseline: cyclic, ignores load entirely
 
 
 class SchedulingDecision(BaseModel):

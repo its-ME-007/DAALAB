@@ -80,6 +80,7 @@ class CodeExecutionUser(HttpUser):
     @task(4)  # Weight 4 - most common
     def submit_linear_code(self):
         """Submit O(n) code - most common case."""
+        # name= groups stats per complexity class in locust's CSV (per-class p50/95/99).
         self.client.post(
             "/api/run-code",
             json={
@@ -88,9 +89,10 @@ class CodeExecutionUser(HttpUser):
                 "algorithm_name": "linear_search",
                 "input_size": 1000
             },
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            name="run-code:O(n)"
         )
-    
+
     @task(2)  # Weight 2
     def submit_linearithmic_code(self):
         """Submit O(n log n) code."""
@@ -102,9 +104,10 @@ class CodeExecutionUser(HttpUser):
                 "algorithm_name": "merge_sort",
                 "input_size": 100
             },
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            name="run-code:O(n log n)"
         )
-    
+
     @task(2)  # Weight 2
     def submit_quadratic_code(self):
         """Submit O(n^2) code."""
@@ -116,9 +119,10 @@ class CodeExecutionUser(HttpUser):
                 "algorithm_name": "bubble_sort",
                 "input_size": 50
             },
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            name="run-code:O(n^2)"
         )
-    
+
     @task(1)  # Weight 1 - least common
     def submit_constant_code(self):
         """Submit O(1) code."""
@@ -130,7 +134,8 @@ class CodeExecutionUser(HttpUser):
                 "algorithm_name": "constant",
                 "input_size": 1
             },
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            name="run-code:O(1)"
         )
     
     @task(1)

@@ -169,6 +169,51 @@ class TestQueueCostScheduling:
         assert selected_worker.worker_id == "worker-1"
 
 
+class TestRandomScheduling:
+    """Test the random baseline (seed-reproducible)."""
+
+    def test_seed_deterministic(self, sample_workers):
+        """Same seed -> same sequence of picks."""
+        a = Scheduler(mode=SchedulingMode.RANDOM, seed=123)
+        b = Scheduler(mode=SchedulingMode.RANDOM, seed=123)
+        picks_a = [a.select_worker(sample_workers, 1000.0)[0].worker_id for _ in range(20)]
+        picks_b = [b.select_worker(sample_workers, 1000.0)[0].worker_id for _ in range(20)]
+        assert picks_a == picks_b
+
+    def test_different_seeds_differ(self, sample_workers):
+        """Different seeds should (very likely) produce different sequences."""
+        a = Scheduler(mode=SchedulingMode.RANDOM, seed=1)
+        b = Scheduler(mode=SchedulingMode.RANDOM, seed=2)
+        picks_a = [a.select_worker(sample_workers, 1000.0)[0].worker_id for _ in range(20)]
+        picks_b = [b.select_worker(sample_workers, 1000.0)[0].worker_id for _ in range(20)]
+        assert picks_a != picks_b
+
+    def test_only_selects_known_workers(self, sample_workers):
+        scheduler = Scheduler(mode=SchedulingMode.RANDOM, seed=0)
+        ids = {w.worker_id for w in sample_workers}
+        for _ in range(30):
+            assert scheduler.select_worker(sample_workers, 1000.0)[0].worker_id in ids
+
+
+class TestRoundRobinScheduling:
+    """Test the round-robin baseline (cyclic, load-oblivious)."""
+
+    def test_cycles_in_worker_id_order(self):
+        workers = [
+            WorkerState(worker_id="worker-2", queue_cost_ms=9999.0, active_jobs=99,
+                        is_healthy=True, last_heartbeat=datetime.utcnow()),
+            WorkerState(worker_id="worker-1", queue_cost_ms=0.0, active_jobs=0,
+                        is_healthy=True, last_heartbeat=datetime.utcnow()),
+            WorkerState(worker_id="worker-3", queue_cost_ms=1.0, active_jobs=1,
+                        is_healthy=True, last_heartbeat=datetime.utcnow()),
+        ]
+        scheduler = Scheduler(mode=SchedulingMode.ROUND_ROBIN)
+        picks = [scheduler.select_worker(workers, 1000.0)[0].worker_id for _ in range(6)]
+        # Cyclic over sorted ids, independent of reported load.
+        assert picks == ["worker-1", "worker-2", "worker-3",
+                         "worker-1", "worker-2", "worker-3"]
+
+
 class TestSchedulerModeChanging:
     """Test switching between scheduling modes."""
     
