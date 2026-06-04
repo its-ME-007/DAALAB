@@ -22,6 +22,7 @@ import asyncio
 
 from worker.container_runner import ContainerRunner, CppContainerRunner
 from worker.worker_state import WorkerState
+from common.constants import MAX_CONCURRENT_JOBS
 from common.models import (
     ExecutionRequest,
     ExecutionResult,
@@ -49,8 +50,9 @@ worker_state = WorkerState(
 python_runner = ContainerRunner()
 cpp_runner = CppContainerRunner()
 
-# Job execution lock (prevent concurrent executions)
-execution_lock = asyncio.Lock()
+# Bounded concurrency: allow up to MAX_CONCURRENT_JOBS jobs to execute at once
+# (replaces the previous single global lock that serialized all execution).
+execution_semaphore = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
 
 # Job results storage (in-memory, should be replaced with DB/Redis in production)
 job_results: Dict[str, ExecutionResult] = {}
@@ -108,19 +110,21 @@ async def execute_job(request: ExecutionRequest):
     job_id = request.job_id
     estimated_cost_ms = request.estimated_cost_ms
     
-    # Acquire lock to prevent concurrent executions
-    async with execution_lock:
+    # Bounded concurrency (up to MAX_CONCURRENT_JOBS run in parallel)
+    async with execution_semaphore:
         try:
             print(f"[EXEC] Executing job {job_id} ({request.language.value})")
-            
+
             # Start execution
             start_time = time.time()
-            
-            # Select appropriate runner
+
+            # Select appropriate runner. run_code() is a blocking Docker SDK call,
+            # so offload it to a worker thread to avoid blocking the event loop and
+            # to let concurrent jobs actually run in parallel.
             if request.language == Language.PYTHON:
-                output, runtime = python_runner.run_code(request.code)
+                output, runtime = await asyncio.to_thread(python_runner.run_code, request.code)
             elif request.language == Language.CPP:
-                output, runtime = cpp_runner.run_code(request.code)
+                output, runtime = await asyncio.to_thread(cpp_runner.run_code, request.code)
             else:
                 raise ValueError(f"Unsupported language: {request.language}")
             

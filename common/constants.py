@@ -19,6 +19,10 @@ CPU_OVERLOAD_THRESHOLD = 0.85
 # Penalty added to queue cost for overloaded workers (in ms)
 CPU_PENALTY = 1000.0
 
+# Minimum confidence for a static-analysis complexity result to be trusted
+# without falling back to the LLM. Results below this are treated as a miss.
+STATIC_CONFIDENCE_THRESHOLD = 0.6
+
 # ============================================================================
 # Complexity Growth Functions (Base Costs in ms)
 # ============================================================================

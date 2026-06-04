@@ -113,8 +113,12 @@ def estimate_execution_cost(
     # Final cost estimate
     estimated_cost = base_cost * growth * language_factor
     
-    # Cap maximum cost to prevent overflow (5 minutes max)
-    return min(estimated_cost, 300000.0)
+    # Cap to guard against exponential/factorial blowup only (1 hour). The
+    # previous 5-minute cap clamped ordinary polynomial jobs (e.g. O(n) Python at
+    # n=1000 = 400,000ms), which collapsed the language multiplier and input-size
+    # scaling the scheduler relies on. complexity_growth() already bounds the
+    # growth factor for O(2^n)/O(n!), so this only catches genuine blowup.
+    return min(estimated_cost, 3_600_000.0)
 
 
 def estimate_cost_simple(
@@ -138,8 +142,8 @@ def estimate_cost_simple(
     base_cost = COMPLEXITY_BASE_COST.get(complexity, DEFAULT_COST_MS)
     growth = complexity_growth(complexity, input_size)
     language_factor = LANGUAGE_MULTIPLIER.get(language, 1.0)
-    
-    return min(base_cost * growth * language_factor, 300000.0)
+
+    return min(base_cost * growth * language_factor, 3_600_000.0)
 
 
 def get_complexity_class_cost(complexity: str) -> float:
