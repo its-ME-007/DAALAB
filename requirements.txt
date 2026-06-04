@@ -37,6 +37,10 @@ mistralai
 # Scheduler-Worker Architecture (New)
 psutil>=5.9.0  # Resource monitoring for workers
 
+# Static complexity analysis (C++ backend; Python uses stdlib ast)
+tree-sitter>=0.22.0
+tree-sitter-cpp>=0.22.0
+
 # Testing & Load Testing
 pytest>=7.4.0
 pytest-asyncio>=0.21.0

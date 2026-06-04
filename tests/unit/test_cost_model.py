@@ -98,14 +98,14 @@ class TestCostEstimation:
         assert cost_large / cost_small == pytest.approx(10.0, rel=0.1)
     
     def test_cost_cap(self):
-        """Cost should be capped at maximum value."""
+        """Cost should be capped at the overflow-guard maximum (1 hour)."""
         analysis = ComplexityAnalysis(
             time_complexity="O(n^3)",
             confidence=0.9
         )
-        
+
         cost = estimate_execution_cost(analysis, Language.PYTHON, 1000000)
-        assert cost <= 300000.0  # Max cap
+        assert cost <= 3_600_000.0  # Max cap (overflow guard for blowup)
 
 
 class TestSimpleCostEstimation:

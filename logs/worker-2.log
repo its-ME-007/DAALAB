@@ -1,4 +1,4 @@
-INFO:     Started server process [34144]
+INFO:     Started server process [10352]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
@@ -6,5 +6,4 @@ INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
 [MONITOR] Resource monitoring: enabled
 [START] Starting worker on 0.0.0.0:8002
 [STARTUP] Worker worker-2 starting up...
-INFO:     127.0.0.1:52509 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53803 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49652 - "GET /health HTTP/1.1" 200 OK

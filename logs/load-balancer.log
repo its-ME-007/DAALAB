@@ -1,4 +1,4 @@
-INFO:     Started server process [5604]
+INFO:     Started server process [36852]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
@@ -6,7 +6,4 @@ INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
 [BALANCER] Load balancer initialized
 [POOL] Scheduler pool: ['http://localhost:8000']
 [MONITOR] Starting health monitor...
-INFO:     127.0.0.1:52761 - "GET /lb/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53793 - "POST /api/run-code HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58232 - "OPTIONS /ask HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58232 - "POST /ask HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50854 - "GET /lb/health HTTP/1.1" 200 OK

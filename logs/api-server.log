@@ -1,19 +1,5 @@
-INFO:     Started server process [8716]
+INFO:     Started server process [12412]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
-INFO:     127.0.0.1:64655 - "GET /api/auth/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50140 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64870 - "GET /static/navigation.js HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50140 - "GET /static/styles.css HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64870 - "GET /favicon.ico HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:64870 - "GET /cpp_compiler.html HTTP/1.1" 200 OK
-[OK] User ID extracted: f9ae170b...
-INFO:     127.0.0.1:64870 - "GET /api/code/cpp HTTP/1.1" 200 OK
-[OK] User ID extracted: f9ae170b...
-INFO:     127.0.0.1:64870 - "POST /api/run-cpp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64870 - "POST /api/analyze-complexity HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63423 - "GET /static/chat.html HTTP/1.1" 200 OK
-[OK] User ID extracted: f9ae170b...
-INFO:     127.0.0.1:63423 - "POST /api/submit-code HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51046 - "POST /api/ai/chat HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:50856 - "GET /api/auth/health HTTP/1.1" 200 OK

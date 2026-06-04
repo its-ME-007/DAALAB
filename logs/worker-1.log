@@ -1,4 +1,4 @@
-INFO:     Started server process [15840]
+INFO:     Started server process [31160]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
@@ -6,10 +6,4 @@ INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
 [MONITOR] Resource monitoring: enabled
 [START] Starting worker on 0.0.0.0:8001
 [STARTUP] Worker worker-1 starting up...
-INFO:     127.0.0.1:62446 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53802 - "GET /status HTTP/1.1" 200 OK
-[QUEUE] Received job 0195753a-58ce-416a-a7ce-12d953b58a8f (estimated: 100000.0ms)
-INFO:     127.0.0.1:53805 - "POST /execute HTTP/1.1" 200 OK
-[EXEC] Executing job 0195753a-58ce-416a-a7ce-12d953b58a8f (cpp)
-[SUCCESS] Job 0195753a-58ce-416a-a7ce-12d953b58a8f completed in 3301.57ms
-INFO:     127.0.0.1:53814 - "GET /job/0195753a-58ce-416a-a7ce-12d953b58a8f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58453 - "GET /health HTTP/1.1" 200 OK
